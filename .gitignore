@@ -1,2 +1,16 @@
+# Executables
+*.exe
+*.out
+*.app
 dignity
-dignity.exe
+
+# Build directories
+build/
+Build/
+build-*/
+
+# Temporary files
+*.tmp
+*.log
+*.bak
+*.swp
