@@ -1,0 +1,5 @@
+// std :: #import("std");
+
+hello :: () {
+    lmfaoo := 30.0;
+}
