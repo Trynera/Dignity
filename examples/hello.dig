@@ -1,5 +1,19 @@
 // std :: #import("std");
 
 hello :: () {
-    lmfaoo := 30.0;
+    variable_name := 30.0;
 }
+
+/*
+    Compiles to:
+
+    /*
+        {"blocks":[{"block":"func","data":"hello","id":"block","args":
+        {"items":[{"item":{"id":"bl_tag","data":{"option":"False",
+        "tag":"Is Hidden","action":"dynamic","block":"func"}},"slot":26}]}},
+        {"id":"block","action":"=","args":{"items":[{"slot":0,"item":
+        {"id":"var","data":{"name":"variable_name","scope":"line"}}},
+        {"slot":1,"item":{"id":"num","data":{"name":"30.0"}}}]},
+        "block":"set_var","inverted":"","attribute":"","target":""}]}
+    */
+*/

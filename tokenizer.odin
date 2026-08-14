@@ -97,8 +97,25 @@ tokenize :: proc(self: ^TokenizerContext) -> TokenizerStatus {
 			current_token.type = .PLUS
 		case character == '/':
 			current_token.type = .DIV
-			if content[index + 1] == '/' {
+			next_token := content[index + 1]
+			if next_token == '/' {
+				index += 2
 				for ; content[index] != '\n'; index += 1 {}
+				column_offset = u32(index)
+				current_line += 1
+				index -= 1
+				continue
+			} else if next_token == '*' {
+				index += 2
+				for comment_blocks := 1; comment_blocks > 0; index += 1 {
+					if content[index] == '*' && content[index + 1] == '/' {
+						comment_blocks -= 1
+						index += 1
+					} else if content[index] == '/' && content[index + 1] == '*' {
+						comment_blocks += 1
+						index += 1
+					}
+				}
 				column_offset = u32(index)
 				current_line += 1
 				index -= 1
@@ -164,4 +181,3 @@ tokenize :: proc(self: ^TokenizerContext) -> TokenizerStatus {
 
 	return .SUCCESS
 }
-
