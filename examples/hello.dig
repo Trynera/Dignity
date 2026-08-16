@@ -15,7 +15,10 @@ hello :: () {
         "tag":"Is Hidden","action":"dynamic","block":"func"}},"slot":26}]}},
         {"id":"block","action":"=","args":{"items":[{"slot":0,"item":
         {"id":"var","data":{"name":"variable_name","scope":"line"}}},
-        {"slot":1,"item":{"id":"num","data":{"name":"30.0"}}}]},
-        "block":"set_var","inverted":"","attribute":"","target":""}]}
+        {"slot":1,"item":{"id":"num","data":{"name":"30.0"}}}]},"block":"set_var",
+        "inverted":"","attribute":"","target":""},{"id":"block","action":"=","args":
+        {"items":[{"slot":0,"item":{"id":"var","data":
+        {"name":"variable_name","scope":"line"}}},{"slot":1,"item":{"id":"num","data":
+        {"name":"5.0"}}}]},"block":"set_var","inverted":"","attribute":"","target":""}]}
     */
 */
