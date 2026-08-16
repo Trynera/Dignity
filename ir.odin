@@ -1,6 +1,7 @@
 package main
 
 import "core:strings"
+
 IAType :: enum {
 	LINE_VAR,
 	NUM,
@@ -8,7 +9,7 @@ IAType :: enum {
 
 InstructionArgument :: struct {
 	type: IAType,
-	data: int,
+	data: uint,
 }
 
 InstructionType :: enum {
@@ -28,7 +29,7 @@ create_instruction :: proc(
 ) -> Instruction {
 	instruction := Instruction {
 		type      = type,
-		arguments = make([dynamic]InstructionArgument, 0, len(arguments)),
+		arguments = make([dynamic]InstructionArgument, len(arguments)),
 	}
 	copy(instruction.arguments[:], arguments)
 
@@ -92,6 +93,14 @@ create_ir_from_node :: proc(
 		return .SUCCESS
 	case .DEFINE_SET:
 		append(&self.instructions, create_instruction(.SET))
+	case .SET:
+		append(
+			&self.instructions,
+			create_instruction(
+				.SET,
+				{InstructionArgument{type = .LINE_VAR, data = current_node.data}},
+			),
+		)
 	case .CONSTANT:
 		append(
 			&self.instructions[len(self.instructions) - 1].arguments,
@@ -195,4 +204,3 @@ create_json_from_argument :: proc(
 
 	strings.write_string(output_json, "}}}")
 }
-

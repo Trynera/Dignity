@@ -50,7 +50,7 @@ NodeIndex :: int
 ASTNode :: struct {
 	children: [dynamic]NodeIndex,
 	type:     NodeType,
-	data:     int,
+	data:     uint,
 }
 
 ParserStatus :: enum {
@@ -58,9 +58,9 @@ ParserStatus :: enum {
 	FAILURE,
 }
 
-create_node :: proc(type: NodeType, data: int = 0, children: []NodeIndex = {}) -> ASTNode {
+create_node :: proc(type: NodeType, data: uint = 0, children: []NodeIndex = {}) -> ASTNode {
 	node := ASTNode {
-		children = make([dynamic]NodeIndex, 0, len(children)),
+		children = make([dynamic]NodeIndex, len(children)),
 		type     = type,
 		data     = data,
 	}
@@ -121,7 +121,6 @@ parse_tlstmt :: proc(self: ^ParserContext, token_index: ^int) -> ParserStatus {
 
 	define_node := create_node(.DEFINE_CONST, type_data, {len(self.tree_nodes)})
 
-	append(&define_node.children, len(self.tree_nodes))
 	append(&self.tree_nodes, identifier_node)
 
 	token_index^ += 1
@@ -151,6 +150,18 @@ parse_stmt :: proc(self: ^ParserContext, token_index: ^int) -> ParserStatus {
 	token_index^ += 1
 	current_token = &self.tokens[token_index^]
 
+	if current_token.type == .EQUAL {
+		set_node := create_node(.SET, identifier_node.data)
+
+		token_index^ += 1
+		parse_expr(self, token_index) or_return
+
+		append(&set_node.children, len(self.tree_nodes) - 1)
+		append(&self.tree_nodes, set_node)
+
+		return .SUCCESS
+	}
+
 	if current_token.type != .COLON {
 		fmt.printfln("Token at {}:{} isn't a COLON", current_token.line, current_token.column)
 
@@ -162,7 +173,7 @@ parse_stmt :: proc(self: ^ParserContext, token_index: ^int) -> ParserStatus {
 
 	type_identifier := "auto"
 	type_data := current_token.symbol_index
-	if current_token.type != .EQUAL {
+	if type_data != NO_SYMBOL_INDEX {
 		type_identifier = get_symbol(self.symbols, type_data)
 
 		token_index^ += 1
@@ -170,7 +181,6 @@ parse_stmt :: proc(self: ^ParserContext, token_index: ^int) -> ParserStatus {
 
 	define_node := create_node(.DEFINE_SET, type_data, {len(self.tree_nodes)})
 
-	append(&define_node.children, len(self.tree_nodes))
 	append(&self.tree_nodes, identifier_node)
 
 	token_index^ += 1
@@ -232,4 +242,3 @@ parse_func :: proc(self: ^ParserContext, token_index: ^int) -> ParserStatus {
 
 	return .SUCCESS
 }
-

@@ -2,6 +2,8 @@
 
 hello :: () {
     variable_name := 30.0;
+
+    variable_name = 5.0;
 }
 
 /*

@@ -53,4 +53,3 @@ main :: proc() {
 
 	fmt.println(generated_json)
 }
-
