@@ -19,7 +19,6 @@ main :: proc() {
 	if tokenizer_status != .SUCCESS {
 		fmt.printfln("{}\n", tokenizer_context.symbols[:])
 		fmt.println(tokenizer_context.tokens[:])
-
 		return
 	}
 
@@ -30,7 +29,6 @@ main :: proc() {
 	if parser_status != .SUCCESS {
 		fmt.printfln("{}\n", parser_context.symbols^)
 		fmt.println(parser_context.tree_nodes[:])
-
 		return
 	}
 
@@ -45,7 +43,6 @@ main :: proc() {
 			fmt.println(node)
 		}
 		fmt.printfln("\n{}", ir_generator_context.instructions[:])
-
 		return
 	}
 

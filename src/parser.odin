@@ -36,6 +36,7 @@ destroy_parser_context :: proc(self: ^ParserContext) {
 NodeType :: enum {
 	PROGRAM,
 	BLOCK,
+	FUNCTION,
 	IDENTIFIER,
 	DEFINE_CONST,
 	DEFINE_SET,
@@ -58,7 +59,7 @@ ParserStatus :: enum {
 	FAILURE,
 }
 
-create_node :: proc(type: NodeType, data: uint = 0, children: []NodeIndex = {}) -> ASTNode {
+create_node :: proc(type: NodeType, data: uint = 0, children := []NodeIndex{}) -> ASTNode {
 	node := ASTNode {
 		children = make([dynamic]NodeIndex, len(children)),
 		type     = type,
@@ -127,6 +128,11 @@ parse_tlstmt :: proc(self: ^ParserContext, token_index: ^int) -> ParserStatus {
 	parse_expr(self, token_index) or_return
 
 	append(&define_node.children, len(self.tree_nodes) - 1)
+
+	if (self.tree_nodes[define_node.children[len(define_node.children) - 1]].type == .FUNCTION) {
+		pop_front(&define_node.children)
+	}
+
 	append(&self.tree_nodes, define_node)
 
 	return .SUCCESS
@@ -187,6 +193,11 @@ parse_stmt :: proc(self: ^ParserContext, token_index: ^int) -> ParserStatus {
 	parse_expr(self, token_index) or_return
 
 	append(&define_node.children, len(self.tree_nodes) - 1)
+
+	if (self.tree_nodes[define_node.children[len(define_node.children) - 1]].type == .FUNCTION) {
+		pop_front(&define_node.children)
+	}
+
 	append(&self.tree_nodes, define_node)
 
 	return .SUCCESS
@@ -196,11 +207,15 @@ parse_expr :: proc(self: ^ParserContext, token_index: ^int) -> ParserStatus {
 	current_token := &self.tokens[token_index^]
 
 	if current_token.type == .LPAREN {
+		function_identifier := len(self.tree_nodes) - 1
+
 		token_index^ += 1
 		current_token = &self.tokens[token_index^]
 
 		if current_token.type == .RPAREN {
-			return parse_func(self, token_index)
+			parse_func(self, token_index) or_return
+			self.tree_nodes[len(self.tree_nodes) - 1].children[0] = function_identifier
+			return .SUCCESS
 		}
 	}
 
@@ -213,15 +228,30 @@ parse_expr :: proc(self: ^ParserContext, token_index: ^int) -> ParserStatus {
 parse_func :: proc(self: ^ParserContext, token_index: ^int) -> ParserStatus {
 	current_token := &self.tokens[token_index^]
 
-	if current_token.type != .RPAREN {
-	}
-
 	token_index^ += 1
 	current_token = &self.tokens[token_index^]
 
+	func_node := create_node(.FUNCTION, 0, {0})
+
+	if current_token.type == .DIRECTIVE {
+		if self.symbols[current_token.symbol_index] != "proc" {
+			fmt.printfln(
+				"Unexpected Directive #{} at {}:{}",
+				self.symbols[current_token.symbol_index],
+				current_token.line,
+				current_token.column,
+			)
+			return .FAILURE
+		}
+
+		func_node.data = 1
+
+		token_index^ += 1
+		current_token = &self.tokens[token_index^]
+	}
+
 	if current_token.type != .LBRACE {
 		fmt.printfln("Expected Codeblock, found {}", current_token)
-
 		return .FAILURE
 	}
 
@@ -238,7 +268,10 @@ parse_func :: proc(self: ^ParserContext, token_index: ^int) -> ParserStatus {
 		append(&block_node.children, len(self.tree_nodes) - 1)
 	}
 
+	append(&func_node.children, len(self.tree_nodes))
+
 	append(&self.tree_nodes, block_node)
+	append(&self.tree_nodes, func_node)
 
 	return .SUCCESS
 }

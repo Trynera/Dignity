@@ -2,6 +2,7 @@ package main
 
 import "core:fmt"
 import "core:os"
+import "core:strings"
 import "core:unicode"
 import "core:unicode/utf8"
 
@@ -38,6 +39,7 @@ TokenType :: enum {
 	RPAREN,
 	LBRACE,
 	RBRACE,
+	DIRECTIVE,
 	FILEPATH,
 }
 
@@ -129,18 +131,23 @@ tokenize :: proc(self: ^TokenizerContext) -> TokenizerStatus {
 			current_token.type = .LBRACE
 		case character == '}':
 			current_token.type = .RBRACE
-		case:
-			current_token.type = .IDENTIFIER
-			current_token.symbol_index = SymbolIndex(len(self.symbols))
+		case character == '#':
+			current_token.type = .DIRECTIVE
+			current_token.symbol_index = len(self.symbols)
 
-			symbol := make([dynamic]rune, 1)
+			index += 1
 
-			for ; !is_special_character(content[index]) && !unicode.is_white_space(content[index]);
-			    index += 1 {
-				append(&symbol, content[index])
+			symbol_builder, err := strings.builder_make()
+			if err != nil {
+				fmt.println("Failed to create symbol builder.")
+				return .FAILURE
 			}
 
-			symbol_string := utf8.runes_to_string(symbol[:])
+			for ; !unicode.is_white_space(content[index]); index += 1 {
+				strings.write_rune(&symbol_builder, content[index])
+			}
+
+			symbol_string := strings.to_string(symbol_builder)
 			for cur_symbol, index in self.symbols {
 				if symbol_string == cur_symbol {
 					current_token.symbol_index = SymbolIndex(index)
@@ -150,30 +157,62 @@ tokenize :: proc(self: ^TokenizerContext) -> TokenizerStatus {
 
 			index -= 1
 
-			if current_token.symbol_index == SymbolIndex(len(self.symbols)) {
-				append(&self.symbols, utf8.runes_to_string(symbol[:]))
+			if current_token.symbol_index == len(self.symbols) {
+				append(&self.symbols, symbol_string)
 			}
 
-			delete(symbol)
-		case unicode.is_digit(character):
-			current_token.type = .CONSTANT
-			current_token.symbol_index = SymbolIndex(len(self.symbols))
+			strings.builder_destroy(&symbol_builder)
+		case:
+			current_token.type = .IDENTIFIER
+			current_token.symbol_index = len(self.symbols)
 
-			digits := make([dynamic]rune, 1)
-
-			for ; unicode.is_digit(content[index]); index += 1 {
-				append(&digits, content[index])
+			symbol_builder, err := strings.builder_make(0, 13)
+			if err != nil {
+				fmt.println("Failed to create symbol builder.")
+				return .FAILURE
 			}
-			if content[index] == '.' {
-				append(&digits, content[index])
-				index += 1
-				for ; unicode.is_digit(content[index]); index += 1 {
-					append(&digits, content[index])
+
+			for ; !is_special_character(content[index]) && !unicode.is_white_space(content[index]);
+			    index += 1 {
+				strings.write_rune(&symbol_builder, content[index])
+			}
+
+			symbol_string := strings.to_string(symbol_builder)
+			for cur_symbol, index in self.symbols {
+				if symbol_string == cur_symbol {
+					current_token.symbol_index = SymbolIndex(index)
+					break
 				}
 			}
-			append(&self.symbols, utf8.runes_to_string(digits[:]))
 
-			delete(digits)
+			index -= 1
+
+			if current_token.symbol_index == len(self.symbols) {
+				append(&self.symbols, symbol_string)
+			}
+
+			strings.builder_destroy(&symbol_builder)
+		case unicode.is_digit(character):
+			current_token.type = .CONSTANT
+			current_token.symbol_index = len(self.symbols)
+
+			digits := strings.builder_make(1)
+
+			for ; unicode.is_digit(content[index]); index += 1 {
+				strings.write_rune(&digits, content[index])
+			}
+
+			if content[index] == '.' {
+				strings.write_rune(&digits, content[index])
+				index += 1
+				for ; unicode.is_digit(content[index]); index += 1 {
+					strings.write_rune(&digits, content[index])
+				}
+			}
+
+			append(&self.symbols, strings.to_string(digits))
+
+			strings.builder_destroy(&digits)
 		}
 
 		append(&self.tokens, current_token)

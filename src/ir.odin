@@ -14,6 +14,7 @@ InstructionArgument :: struct {
 
 InstructionType :: enum {
 	FUNCTION,
+	PROCESS,
 	SET,
 	END,
 }
@@ -82,15 +83,21 @@ create_ir_from_node :: proc(
 	#partial switch current_node.type {
 	case .PROGRAM ..= .BLOCK:
 		break
-	case .DEFINE_CONST:
-		append(&self.instructions, create_instruction(.FUNCTION))
+	case .FUNCTION:
+		append(
+			&self.instructions,
+			create_instruction(current_node.data == 0 ? .FUNCTION : .PROCESS),
+		)
 
 		for child_index in current_node.children {
 			create_ir_from_node(self, &self.tree_nodes[child_index]) or_return
 		}
+
 		append(&self.instructions, create_instruction(.END))
 
 		return .SUCCESS
+	case .DEFINE_CONST:
+		break
 	case .DEFINE_SET:
 		append(&self.instructions, create_instruction(.SET))
 	case .SET:
@@ -156,6 +163,13 @@ create_json_from_instruction :: proc(
 		strings.write_string(
 			output_json,
 			"\",\"id\":\"block\",\"args\":{\"items\":[{\"item\":{\"id\":\"bl_tag\",\"data\":{\"option\":\"False\",\"tag\":\"Is Hidden\",\"action\":\"dynamic\",\"block\":\"func\"}},\"slot\":26}]}}",
+		)
+	case .PROCESS:
+		strings.write_string(output_json, "{\"block\":\"process\",\"data\":\"")
+		strings.write_string(output_json, self.symbols[instruction.arguments[0].data])
+		strings.write_string(
+			output_json,
+			"\",\"id\":\"block\",\"args\":{\"items\":[{\"item\":{\"id\":\"bl_tag\",\"data\":{\"option\":\"False\",\"tag\":\"Is Hidden\",\"action\":\"dynamic\",\"block\":\"process\"}},\"slot\":26}]}}",
 		)
 	case .SET:
 		strings.write_string(

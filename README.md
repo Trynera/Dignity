@@ -21,7 +21,7 @@ var2 : str = s"DF";
 
 Dignity's core types are constraint to:
 
-```c
+```js
 num
 txt
 str
@@ -33,5 +33,5 @@ particle
 item
 any
 list<>
-dict
+dict<>
 ```
