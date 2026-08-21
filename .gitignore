@@ -3,6 +3,10 @@
 *.out
 *.app
 
+# Debug Files
+*.pdb
+*.rdi
+
 # Build directories
 build/
 Build/
