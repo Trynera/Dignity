@@ -23,7 +23,6 @@ append_symbol :: proc(self: ^SymbolTable, symbol: string) -> SymbolIndex {
 		}
 	}
 
-
 	append(self, symbol)
 
 	return len(self) - 1

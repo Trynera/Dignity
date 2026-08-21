@@ -1,9 +1,26 @@
 package main
 
 import "core:fmt"
+import "core:mem"
 import "core:os"
 
 main :: proc() {
+	when ODIN_DEBUG {
+		track: mem.Tracking_Allocator
+		mem.tracking_allocator_init(&track, context.allocator)
+		context.allocator = mem.tracking_allocator(&track)
+
+		defer {
+			if len(track.allocation_map) > 0 {
+				fmt.eprintf("=== %v allocations not freed: ===\n", len(track.allocation_map))
+				for _, entry in track.allocation_map {
+					fmt.eprintf("- %v bytes @ %v\n", entry.size, entry.location)
+				}
+			}
+			mem.tracking_allocator_destroy(&track)
+		}
+	}
+
 	cmd_args := os.args
 
 	if len(cmd_args) < 2 {
@@ -21,6 +38,8 @@ main :: proc() {
 		fmt.println(tokenizer_context.tokens[:])
 		return
 	}
+
+	fmt.printfln("{}\n", tokenizer_context.symbols[:])
 
 	parser_context := create_parser_context(&tokenizer_context)
 	defer destroy_parser_context(&parser_context)

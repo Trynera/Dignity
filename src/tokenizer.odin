@@ -81,12 +81,18 @@ tokenize :: proc(self: ^TokenizerContext) -> TokenizerStatus {
 		tokenize_character(self, &index) or_return
 	}
 
+	delete(self.content)
+
 	return .SUCCESS
 }
 
 tokenize_character :: proc(self: ^TokenizerContext, index: ^int) -> TokenizerStatus {
 	character := self.content[index^]
 	if unicode.is_white_space(character) {
+		if character == '\r' {
+			index^ += 1
+			character = self.content[index^]
+		}
 		self.column_offset = character == '\n' ? u32(index^) : self.column_offset
 		self.current_line += character == '\n' ? 1 : 0
 		return .SUCCESS
@@ -118,10 +124,10 @@ tokenize_character :: proc(self: ^TokenizerContext, index: ^int) -> TokenizerSta
 			index^ -= 1
 			return .SUCCESS
 		}
-
 		if next_token != '*' {
 			break
 		}
+
 		index^ += 2
 		for comment_blocks := 1; comment_blocks > 0; index^ += 1 {
 			if self.content[index^] == '*' && self.content[index^ + 1] == '/' {
@@ -146,11 +152,10 @@ tokenize_character :: proc(self: ^TokenizerContext, index: ^int) -> TokenizerSta
 		current_token.type = .RBRACE
 	case character == '#':
 		current_token.type = .DIRECTIVE
-		current_token.symbol_index = len(self.symbols)
 
 		index^ += 1
 
-		symbol_builder, err := strings.builder_make(0, 13)
+		symbol_builder, err := strings.builder_make(0, 16)
 		if err != nil {
 			fmt.println("Failed to create symbol builder.")
 			return .FAILURE
@@ -162,14 +167,13 @@ tokenize_character :: proc(self: ^TokenizerContext, index: ^int) -> TokenizerSta
 
 		symbol_string := strings.to_string(symbol_builder)
 
-		append_symbol(&self.symbols, symbol_string)
+		current_token.symbol_index = append_symbol(&self.symbols, symbol_string)
 
 		strings.builder_destroy(&symbol_builder)
 	case:
 		current_token.type = .IDENTIFIER
-		current_token.symbol_index = len(self.symbols)
 
-		symbol_builder, err := strings.builder_make(0, 13)
+		symbol_builder, err := strings.builder_make(0, 16)
 		if err != nil {
 			fmt.println("Failed to create symbol builder.")
 			return .FAILURE
@@ -182,18 +186,8 @@ tokenize_character :: proc(self: ^TokenizerContext, index: ^int) -> TokenizerSta
 		}
 
 		symbol_string := strings.to_string(symbol_builder)
-		for cur_symbol, index in self.symbols {
-			if symbol_string == cur_symbol {
-				current_token.symbol_index = SymbolIndex(index)
-				break
-			}
-		}
 
-		index^ -= 1
-
-		if current_token.symbol_index == len(self.symbols) {
-			append(&self.symbols, symbol_string)
-		}
+		current_token.symbol_index = append_symbol(&self.symbols, symbol_string)
 
 		strings.builder_destroy(&symbol_builder)
 	case unicode.is_digit(character):

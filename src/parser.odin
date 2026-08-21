@@ -24,8 +24,8 @@ create_parser_context :: proc(tokenizer_context: ^TokenizerContext) -> ParserCon
 }
 
 destroy_parser_context :: proc(self: ^ParserContext) {
-	for node_index := 0; node_index < len(self.tree_nodes); node_index += 1 {
-		destroy_node(&self.tree_nodes[node_index])
+	for &node in self.tree_nodes {
+		destroy_node(&node)
 	}
 
 	if self.tree_nodes != nil {
@@ -96,7 +96,6 @@ parse_tlstmt :: proc(self: ^ParserContext, token_index: ^int) -> ParserStatus {
 			current_token.line,
 			current_token.column,
 		)
-
 		return .FAILURE
 	}
 
@@ -107,7 +106,6 @@ parse_tlstmt :: proc(self: ^ParserContext, token_index: ^int) -> ParserStatus {
 
 	if current_token.type != .COLON {
 		fmt.printfln("Token at {}:{} isn't a COLON", current_token.line, current_token.column)
-
 		return .FAILURE
 	}
 
@@ -234,10 +232,11 @@ parse_func :: proc(self: ^ParserContext, token_index: ^int) -> ParserStatus {
 	func_node := create_node(.FUNCTION, 0, {0})
 
 	if current_token.type == .DIRECTIVE {
-		if self.symbols[current_token.symbol_index] != "proc" {
+		directive_symbol := get_symbol(self.symbols, current_token.symbol_index)
+		if directive_symbol != "proc" {
 			fmt.printfln(
 				"Unexpected Directive #{} at {}:{}",
-				self.symbols[current_token.symbol_index],
+				directive_symbol,
 				current_token.line,
 				current_token.column,
 			)
