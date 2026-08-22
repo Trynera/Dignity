@@ -1,0 +1,6 @@
+["example\\hello.dig", "hello", "proc", "some_variable", "30.0", "5.0"]
+
+PROC $1() ; $1 is "hello" in the symbol table
+    SET $3 $4 ; $3 is "some_variable" in the symbol table and $4 is "30.0"
+    SET $3 $5 ; Same concept, just with the 5th element
+END

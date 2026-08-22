@@ -3,7 +3,7 @@
 *.out
 *.app
 
-# Debug Files
+# Debug files
 *.pdb
 *.rdi
 
@@ -17,7 +17,6 @@ build-*/
 *.log
 *.bak
 *.swp
-*.txt
 
 # Shell files
 *.sh
