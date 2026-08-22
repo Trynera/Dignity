@@ -1,7 +1,7 @@
 // std :: #import("std");
 
 hello :: () #proc {
-    variable_name := "Hello, World!";
+    variable_name := 30.0;
 }
 
 /*
