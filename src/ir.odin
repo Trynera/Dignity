@@ -114,7 +114,8 @@ create_ir_from_node :: proc(
 			),
 		)
 	case .CONSTANT:
-		argument_type := get_symbol(self.symbols, current_node.data)[0] == '"' ? IAType.TXT : IAType.NUM
+		first_char := get_symbol(self.symbols, current_node.data)[0]
+		argument_type := first_char == '"' ? IAType.TXT : (first_char == 's') ? IAType.STR : IAType.NUM
 
 		append(
 			&self.instructions[len(self.instructions) - 1].arguments,
@@ -223,7 +224,7 @@ create_json_from_argument :: proc(
 		strings.write_string(output_json, get_symbol(self.symbols, argument.data)[1:])
 		strings.write_string(output_json, "\"")
 	case .STR:
-		strings.write_string(output_json, "\"id\":\"str\",\"data\":{\"name\":\"")
+		strings.write_string(output_json, "\"id\":\"comp\",\"data\":{\"name\":\"")
 		strings.write_string(output_json, get_symbol(self.symbols, argument.data)[1:])
 		strings.write_string(output_json, "\"")
 	}

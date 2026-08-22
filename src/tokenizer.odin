@@ -174,7 +174,7 @@ tokenize_character :: proc(self: ^TokenizerContext, index: ^int) -> TokenizerSta
 		current_token.type = .CONSTANT
 		current_token.symbol_index = len(self.symbols)
 
-		digits := strings.builder_make(0, 1)
+		digits := strings.builder_make(0, 16)
 		strings.write_rune(&digits, '"')
 
 		index^ += 1
@@ -190,9 +190,8 @@ tokenize_character :: proc(self: ^TokenizerContext, index: ^int) -> TokenizerSta
 		strings.builder_destroy(&digits)
 	case unicode.is_digit(character):
 		current_token.type = .CONSTANT
-		current_token.symbol_index = len(self.symbols)
 
-		digits := strings.builder_make(0, 1)
+		digits := strings.builder_make(0, 16)
 
 		for ; unicode.is_digit(self.content[index^]); index^ += 1 {
 			strings.write_rune(&digits, self.content[index^])
@@ -206,16 +205,31 @@ tokenize_character :: proc(self: ^TokenizerContext, index: ^int) -> TokenizerSta
 			}
 		}
 
-		append(&self.symbols, strings.to_string(digits))
+		current_token.symbol_index = append_symbol(&self.symbols, strings.to_string(digits))
 
 		strings.builder_destroy(&digits)
 	case:
 		current_token.type = .IDENTIFIER
 
-		symbol_builder, err := strings.builder_make(0, 16)
-		if err != nil {
-			fmt.println("Failed to create symbol builder.")
-			return .FAILURE
+		symbol_builder := strings.builder_make(0, 16)
+
+		if character == 's' && self.content[index^ + 1] == '"' {
+			current_token.type = .CONSTANT
+			strings.write_rune(&symbol_builder, 's')
+
+			index^ += 2
+
+			for ; self.content[index^] != '"'; index^ += 1 {
+				strings.write_rune(&symbol_builder, self.content[index^])
+			}
+
+			index^ += 1
+
+			current_token.symbol_index = append_symbol(&self.symbols, strings.to_string(symbol_builder))
+
+			strings.builder_destroy(&symbol_builder)
+
+			break
 		}
 
 		for ; !is_special_character(self.content[index^]) &&
