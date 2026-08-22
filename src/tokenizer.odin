@@ -170,6 +170,45 @@ tokenize_character :: proc(self: ^TokenizerContext, index: ^int) -> TokenizerSta
 		current_token.symbol_index = append_symbol(&self.symbols, symbol_string)
 
 		strings.builder_destroy(&symbol_builder)
+	case character == '"':
+		current_token.type = .CONSTANT
+		current_token.symbol_index = len(self.symbols)
+
+		digits := strings.builder_make(0, 1)
+		strings.write_rune(&digits, '"')
+
+		index^ += 1
+
+		for ; self.content[index^] != '"'; index^ += 1 {
+			strings.write_rune(&digits, self.content[index^])
+		}
+
+		index^ += 1
+
+		append(&self.symbols, strings.to_string(digits))
+
+		strings.builder_destroy(&digits)
+	case unicode.is_digit(character):
+		current_token.type = .CONSTANT
+		current_token.symbol_index = len(self.symbols)
+
+		digits := strings.builder_make(0, 1)
+
+		for ; unicode.is_digit(self.content[index^]); index^ += 1 {
+			strings.write_rune(&digits, self.content[index^])
+		}
+
+		if self.content[index^] == '.' {
+			strings.write_rune(&digits, self.content[index^])
+			index^ += 1
+			for ; unicode.is_digit(self.content[index^]); index^ += 1 {
+				strings.write_rune(&digits, self.content[index^])
+			}
+		}
+
+		append(&self.symbols, strings.to_string(digits))
+
+		strings.builder_destroy(&digits)
 	case:
 		current_token.type = .IDENTIFIER
 
@@ -190,27 +229,6 @@ tokenize_character :: proc(self: ^TokenizerContext, index: ^int) -> TokenizerSta
 		current_token.symbol_index = append_symbol(&self.symbols, symbol_string)
 
 		strings.builder_destroy(&symbol_builder)
-	case unicode.is_digit(character):
-		current_token.type = .CONSTANT
-		current_token.symbol_index = len(self.symbols)
-
-		digits := strings.builder_make(1)
-
-		for ; unicode.is_digit(self.content[index^]); index^ += 1 {
-			strings.write_rune(&digits, self.content[index^])
-		}
-
-		if self.content[index^] == '.' {
-			strings.write_rune(&digits, self.content[index^])
-			index^ += 1
-			for ; unicode.is_digit(self.content[index^]); index^ += 1 {
-				strings.write_rune(&digits, self.content[index^])
-			}
-		}
-
-		append(&self.symbols, strings.to_string(digits))
-
-		strings.builder_destroy(&digits)
 	}
 
 	append(&self.tokens, current_token)

@@ -5,6 +5,8 @@ import "core:strings"
 IAType :: enum {
 	LINE_VAR,
 	NUM,
+	TXT,
+	STR,
 }
 
 InstructionArgument :: struct {
@@ -112,9 +114,11 @@ create_ir_from_node :: proc(
 			),
 		)
 	case .CONSTANT:
+		argument_type := get_symbol(self.symbols, current_node.data)[0] == '"' ? IAType.TXT : IAType.NUM
+
 		append(
 			&self.instructions[len(self.instructions) - 1].arguments,
-			InstructionArgument{type = .NUM, data = current_node.data},
+			InstructionArgument{type = argument_type, data = current_node.data},
 		)
 
 		return .SUCCESS
@@ -213,6 +217,14 @@ create_json_from_argument :: proc(
 	case .NUM:
 		strings.write_string(output_json, "\"id\":\"num\",\"data\":{\"name\":\"")
 		strings.write_string(output_json, get_symbol(self.symbols, argument.data))
+		strings.write_string(output_json, "\"")
+	case .TXT:
+		strings.write_string(output_json, "\"id\":\"txt\",\"data\":{\"name\":\"")
+		strings.write_string(output_json, get_symbol(self.symbols, argument.data)[1:])
+		strings.write_string(output_json, "\"")
+	case .STR:
+		strings.write_string(output_json, "\"id\":\"str\",\"data\":{\"name\":\"")
+		strings.write_string(output_json, get_symbol(self.symbols, argument.data)[1:])
 		strings.write_string(output_json, "\"")
 	}
 
