@@ -37,6 +37,8 @@ TokenType :: enum {
 	SEMICOLON,
 	EQUAL,
 	PLUS,
+	MINUS,
+	MUL,
 	DIV,
 	LPAREN,
 	RPAREN,
@@ -113,6 +115,10 @@ tokenize_character :: proc(self: ^TokenizerContext, index: ^int) -> TokenizerSta
 		current_token.type = .EQUAL
 	case character == '+':
 		current_token.type = .PLUS
+	case character == '-':
+		current_token.type = .MINUS
+	case character == '*':
+		current_token.type = .MUL
 	case character == '/':
 		current_token.type = .DIV
 		next_token := self.content[index^ + 1]
