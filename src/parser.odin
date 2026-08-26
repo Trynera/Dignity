@@ -96,6 +96,7 @@ parse_tlstmt :: proc(self: ^ParserContext, token_index: ^int) -> ParserStatus {
 			current_token.line,
 			current_token.column,
 		)
+
 		return .FAILURE
 	}
 
@@ -106,6 +107,7 @@ parse_tlstmt :: proc(self: ^ParserContext, token_index: ^int) -> ParserStatus {
 
 	if current_token.type != .COLON {
 		fmt.printfln("Token at {}:{} isn't a COLON", current_token.line, current_token.column)
+
 		return .FAILURE
 	}
 
@@ -213,11 +215,12 @@ parse_expr :: proc(self: ^ParserContext, token_index: ^int) -> ParserStatus {
 		if current_token.type == .RPAREN {
 			parse_func(self, token_index) or_return
 			self.tree_nodes[len(self.tree_nodes) - 1].children[0] = function_identifier
+
 			return .SUCCESS
 		}
 	}
 
-	constant_node := create_node(.CONSTANT, current_token.symbol_index)
+	constant_node := create_node(current_token.type == .IDENTIFIER ? .IDENTIFIER : .CONSTANT, current_token.symbol_index)
 	append(&self.tree_nodes, constant_node)
 
 	return .SUCCESS
@@ -240,6 +243,7 @@ parse_func :: proc(self: ^ParserContext, token_index: ^int) -> ParserStatus {
 				current_token.line,
 				current_token.column,
 			)
+
 			return .FAILURE
 		}
 
@@ -251,6 +255,7 @@ parse_func :: proc(self: ^ParserContext, token_index: ^int) -> ParserStatus {
 
 	if current_token.type != .LBRACE {
 		fmt.printfln("Expected Codeblock, found {}", current_token)
+
 		return .FAILURE
 	}
 

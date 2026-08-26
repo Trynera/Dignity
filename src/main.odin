@@ -52,8 +52,9 @@ main :: proc() {
 	}
 
 	ir_generator_context := create_ir_generator_context(&parser_context)
-
 	defer destroy_ir_generator_context(&ir_generator_context)
+
+	fmt.printfln("{}\n", parser_context.tree_nodes[:])
 
 	ir_generator_status := create_ir_from_ast(&ir_generator_context)
 	if ir_generator_status != .SUCCESS {

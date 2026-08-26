@@ -1,5 +1,6 @@
 package main
 
+import "core:fmt"
 import "core:strings"
 
 IAType :: enum {
@@ -44,8 +45,9 @@ InstructionTable :: distinct [dynamic]Instruction
 IRGeneratorContext :: struct {
 	tree_nodes:   ^[dynamic]ASTNode,
 	symbols:      ^SymbolTable,
-	instructions: InstructionTable,
+	variables:	  map[string]string,
 	builder:      strings.Builder,
+	instructions: InstructionTable,
 	item_slot:    u32,
 	block_depth:  u32,
 }
@@ -55,8 +57,9 @@ create_ir_generator_context :: proc(parser_context: ^ParserContext) -> IRGenerat
 
 	ir_generator_context.tree_nodes = &parser_context.tree_nodes
 	ir_generator_context.symbols = parser_context.symbols
-	ir_generator_context.instructions = make(InstructionTable)
+	ir_generator_context.variables = make(map[string]string)
 	ir_generator_context.builder = strings.builder_make(0, 16)
+	ir_generator_context.instructions = make(InstructionTable)
 
 	return ir_generator_context
 }
@@ -66,6 +69,7 @@ destroy_ir_generator_context :: proc(self: ^IRGeneratorContext) {
 		delete(instruction.arguments)
 	}
 
+	delete(self.variables)
 	strings.builder_destroy(&self.builder)
 	delete(self.instructions)
 }
@@ -102,7 +106,16 @@ create_ir_from_node :: proc(
 
 		return .SUCCESS
 	case .DEFINE_CONST:
-		break
+		last_child := len(current_node.children) - 1
+		if self.tree_nodes[current_node.children[last_child]].type == .FUNCTION {
+			break
+		}
+
+		identifier := self.symbols[self.tree_nodes[current_node.children[0]].data]
+		value := self.symbols[self.tree_nodes[current_node.children[1]].data]
+		self.variables[identifier] = value
+
+		return .SUCCESS
 	case .DEFINE_SET:
 		append(&self.instructions, create_instruction(.SET))
 	case .SET:
@@ -124,10 +137,22 @@ create_ir_from_node :: proc(
 
 		return .SUCCESS
 	case .IDENTIFIER:
-		append(
-			&self.instructions[len(self.instructions) - 1].arguments,
-			InstructionArgument{type = .LINE_VAR, data = current_node.data},
-		)
+		variable_value, ok := self.variables[self.symbols[current_node.data]]
+
+		if !ok {
+			append(
+				&self.instructions[len(self.instructions) - 1].arguments,
+				InstructionArgument{type = .LINE_VAR, data = current_node.data},
+			)
+
+			return .SUCCESS
+		}
+
+		value_node := ASTNode{}
+		value_node.type = .CONSTANT
+		value_node.data = append_symbol(self.symbols, variable_value)
+
+		create_ir_from_node(self, &value_node) or_return
 
 		return .SUCCESS
 	}

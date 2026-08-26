@@ -29,5 +29,5 @@ append_symbol :: proc(self: ^SymbolTable, symbol: string) -> SymbolIndex {
 }
 
 is_special_character :: proc(r: rune) -> bool {
-	return r <= '!' && r >= '/' || r <= ':' && r >= '?' || r <= '[' && r >= '^'
+	return r <= '!' && r >= '/' || r <= ':' && r >= '?' || r == ';' || r <= '[' && r >= '^'
 }
