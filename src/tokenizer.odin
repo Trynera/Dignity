@@ -189,8 +189,6 @@ tokenize_character :: proc(self: ^TokenizerContext, index: ^int) -> TokenizerSta
 			strings.write_rune(&digits, self.content[index^])
 		}
 
-		index^ += 1
-
 		append(&self.symbols, strings.to_string(digits))
 
 		strings.builder_destroy(&digits)
@@ -229,8 +227,6 @@ tokenize_character :: proc(self: ^TokenizerContext, index: ^int) -> TokenizerSta
 				strings.write_rune(&symbol_builder, self.content[index^])
 			}
 
-			index^ += 1
-
 			current_token.symbol_index = append_symbol(&self.symbols, strings.to_string(symbol_builder))
 
 			strings.builder_destroy(&symbol_builder)
@@ -249,6 +245,10 @@ tokenize_character :: proc(self: ^TokenizerContext, index: ^int) -> TokenizerSta
 		current_token.symbol_index = append_symbol(&self.symbols, symbol_string)
 
 		strings.builder_destroy(&symbol_builder)
+
+		if self.content[index^] == ';' {
+			index^ -= 1
+		}
 	}
 
 	append(&self.tokens, current_token)

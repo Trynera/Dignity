@@ -46,7 +46,7 @@ main :: proc() {
 
 	parser_status := parse_program(&parser_context)
 	if parser_status != .SUCCESS {
-		fmt.printfln("{}\n", parser_context.symbols^)
+		fmt.printfln("{}\n\n{}\n", parser_context.symbols^, parser_context.tokens^)
 		fmt.println(parser_context.tree_nodes[:])
 		return
 	}

@@ -127,6 +127,12 @@ create_ir_from_node :: proc(
 			),
 		)
 	case .CONSTANT:
+		variable_value, ok := self.variables[self.symbols[current_node.data]]
+
+		if ok {
+			current_node.data = append_symbol(self.symbols, variable_value)
+		}
+
 		first_char := get_symbol(self.symbols, current_node.data)[0]
 		argument_type := first_char == '"' ? IAType.TXT : (first_char == 's') ? IAType.STR : IAType.NUM
 

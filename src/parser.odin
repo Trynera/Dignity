@@ -135,6 +135,19 @@ parse_tlstmt :: proc(self: ^ParserContext, token_index: ^int) -> ParserStatus {
 
 	append(&self.tree_nodes, define_node)
 
+	if self.tokens[token_index^].type == .RBRACE {
+		return .SUCCESS
+	}
+
+	token_index^ += 1
+	current_token = &self.tokens[token_index^]
+
+	if current_token.type != .SEMICOLON {
+		fmt.eprintfln("Missing ';' at {}:{}", current_token.line, current_token.column)
+
+		return .FAILURE
+	}
+
 	return .SUCCESS
 }
 
@@ -169,7 +182,7 @@ parse_stmt :: proc(self: ^ParserContext, token_index: ^int) -> ParserStatus {
 	}
 
 	if current_token.type != .COLON {
-		fmt.printfln("Token at {}:{} isn't a COLON", current_token.line, current_token.column)
+		fmt.printfln("Token at {}:{} isn't ':'", current_token.line, current_token.column)
 
 		return .FAILURE
 	}
@@ -201,6 +214,15 @@ parse_stmt :: proc(self: ^ParserContext, token_index: ^int) -> ParserStatus {
 	}
 
 	append(&self.tree_nodes, define_node)
+
+	token_index^ += 1
+	current_token = &self.tokens[token_index^]
+
+	if current_token.type != .SEMICOLON {
+		fmt.eprintfln("Missing ';' at {}:{}", current_token.line, current_token.column)
+
+		return .FAILURE
+	}
 
 	return .SUCCESS
 }
