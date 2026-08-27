@@ -3,5 +3,8 @@
 the_world :: "Hello, World!";
 
 hello :: () {
-	  variable_name := the_world;
+	  hmm :: "testing";
+	  variable_name := hmm;
+
+	  other_variable := the_world;
 }

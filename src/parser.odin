@@ -183,9 +183,11 @@ parse_stmt :: proc(self: ^ParserContext, token_index: ^int) -> ParserStatus {
 		type_identifier = get_symbol(self.symbols, type_data)
 
 		token_index^ += 1
+		current_token = &self.tokens[token_index^]
 	}
 
-	define_node := create_node(.DEFINE_SET, type_data, {len(self.tree_nodes)})
+	define_node := create_node(current_token.type == .COLON ? .DEFINE_CONST : .DEFINE_SET,
+							   type_data, {len(self.tree_nodes)})
 
 	append(&self.tree_nodes, identifier_node)
 
