@@ -1,5 +1,6 @@
 package main
 
+import "core:fmt"
 import "core:math/bits"
 
 SymbolTable :: distinct [dynamic]string
@@ -16,14 +17,16 @@ get_symbol :: proc(self: ^SymbolTable, index: SymbolIndex) -> string {
 	return self[index]
 }
 
-append_symbol :: proc(self: ^SymbolTable, symbol: string) -> SymbolIndex {
+append_symbol :: proc(self: ^SymbolTable, symbol: ^string) -> SymbolIndex {
 	for cur_symbol, index in self {
-		if symbol == cur_symbol {
+		if cur_symbol == symbol^ {
+			if raw_data(cur_symbol) != raw_data(symbol^) do delete(symbol^)
+
 			return SymbolIndex(index)
 		}
 	}
 
-	append(self, symbol)
+	append(self, symbol^)
 
 	return len(self) - 1
 }

@@ -91,7 +91,7 @@ parse_tlstmt :: proc(self: ^ParserContext, token_index: ^int) -> ParserStatus {
 	current_token := &self.tokens[token_index^]
 
 	if current_token.type != .IDENTIFIER {
-		fmt.printfln(
+		fmt.eprintfln(
 			"Token at {}:{} isn't an identifier",
 			current_token.line,
 			current_token.column,
@@ -106,7 +106,7 @@ parse_tlstmt :: proc(self: ^ParserContext, token_index: ^int) -> ParserStatus {
 	current_token = &self.tokens[token_index^]
 
 	if current_token.type != .COLON {
-		fmt.printfln("Token at {}:{} isn't a COLON", current_token.line, current_token.column)
+		fmt.eprintfln("Token at {}:{} isn't a COLON", current_token.line, current_token.column)
 
 		return .FAILURE
 	}
@@ -155,7 +155,7 @@ parse_stmt :: proc(self: ^ParserContext, token_index: ^int) -> ParserStatus {
 	current_token := &self.tokens[token_index^]
 
 	if current_token.type != .IDENTIFIER {
-		fmt.printfln(
+		fmt.eprintfln(
 			"Token at {}:{} isn't an identifier",
 			current_token.line,
 			current_token.column,
@@ -182,7 +182,7 @@ parse_stmt :: proc(self: ^ParserContext, token_index: ^int) -> ParserStatus {
 	}
 
 	if current_token.type != .COLON {
-		fmt.printfln("Token at {}:{} isn't ':'", current_token.line, current_token.column)
+		fmt.eprintfln("Token at {}:{} isn't ':'", current_token.line, current_token.column)
 
 		return .FAILURE
 	}
@@ -261,7 +261,7 @@ parse_func :: proc(self: ^ParserContext, token_index: ^int) -> ParserStatus {
 	if current_token.type == .DIRECTIVE {
 		directive_symbol := get_symbol(self.symbols, current_token.symbol_index)
 		if directive_symbol != "proc" {
-			fmt.printfln(
+			fmt.eprintfln(
 				"Unexpected Directive #{} at {}:{}",
 				directive_symbol,
 				current_token.line,
@@ -278,7 +278,7 @@ parse_func :: proc(self: ^ParserContext, token_index: ^int) -> ParserStatus {
 	}
 
 	if current_token.type != .LBRACE {
-		fmt.printfln("Expected Codeblock, found {}", current_token)
+		fmt.eprintfln("Expected Codeblock, found {}", current_token)
 
 		return .FAILURE
 	}

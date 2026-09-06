@@ -111,8 +111,8 @@ create_ir_from_node :: proc(
 			break
 		}
 
-		identifier := self.symbols[self.tree_nodes[current_node.children[0]].data]
-		value := self.symbols[self.tree_nodes[current_node.children[1]].data]
+		identifier := get_symbol(self.symbols, self.tree_nodes[current_node.children[0]].data)
+		value := get_symbol(self.symbols, self.tree_nodes[current_node.children[1]].data)
 		self.variables[identifier] = value
 
 		return .SUCCESS
@@ -127,10 +127,10 @@ create_ir_from_node :: proc(
 			),
 		)
 	case .CONSTANT:
-		variable_value, ok := self.variables[self.symbols[current_node.data]]
+		variable_value, ok := self.variables[get_symbol(self.symbols, current_node.data)]
 
 		if ok {
-			current_node.data = append_symbol(self.symbols, variable_value)
+			current_node.data = append_symbol(self.symbols, &variable_value)
 		}
 
 		first_char := get_symbol(self.symbols, current_node.data)[0]
@@ -143,7 +143,7 @@ create_ir_from_node :: proc(
 
 		return .SUCCESS
 	case .IDENTIFIER:
-		variable_value, ok := self.variables[self.symbols[current_node.data]]
+		variable_value, ok := self.variables[get_symbol(self.symbols, current_node.data)]
 
 		if !ok {
 			append(
@@ -156,7 +156,7 @@ create_ir_from_node :: proc(
 
 		value_node := ASTNode{}
 		value_node.type = .CONSTANT
-		value_node.data = append_symbol(self.symbols, variable_value)
+		value_node.data = append_symbol(self.symbols, &variable_value)
 
 		create_ir_from_node(self, &value_node) or_return
 
@@ -195,7 +195,7 @@ create_json_from_instruction :: proc(self: ^IRGeneratorContext, instruction: ^In
 		)
 		strings.write_string(
 			&self.builder,
-			"\",\"id\":\"block\",\"args\":{\"items\":[{\"item\":{\"id\":\"bl_tag\",\"data\":{\"option\":\"False\",\"tag\":\"Is Hidden\",\"action\":\"dynamic\",\"block\":\"func\"}},\"slot\":26}]}}",
+			"\",\"id\":\"block\",\"args\":{\"items\":[{\"item\":{\"version\":1,\"id\":\"bl_tag\",\"data\":{\"option\":\"False\",\"tag\":\"Is Hidden\",\"action\":\"dynamic\",\"block\":\"func\"}},\"slot\":26}]}}",
 		)
 	case .PROCESS:
 		strings.write_string(&self.builder, "{\"block\":\"process\",\"data\":\"")
@@ -205,7 +205,7 @@ create_json_from_instruction :: proc(self: ^IRGeneratorContext, instruction: ^In
 		)
 		strings.write_string(
 			&self.builder,
-			"\",\"id\":\"block\",\"args\":{\"items\":[{\"item\":{\"id\":\"bl_tag\",\"data\":{\"option\":\"False\",\"tag\":\"Is Hidden\",\"action\":\"dynamic\",\"block\":\"process\"}},\"slot\":26}]}}",
+			"\",\"id\":\"block\",\"args\":{\"items\":[{\"item\":{\"version\":1,\"id\":\"bl_tag\",\"data\":{\"option\":\"False\",\"tag\":\"Is Hidden\",\"action\":\"dynamic\",\"block\":\"process\"}},\"slot\":26}]}}",
 		)
 	case .SET:
 		strings.write_string(
@@ -243,19 +243,19 @@ create_json_from_argument :: proc(
 
 	switch argument.type {
 	case .LINE_VAR:
-		strings.write_string(output_json, "\"id\":\"var\",\"data\":{\"name\":\"")
+		strings.write_string(output_json, "\"version\":1,\"id\":\"var\",\"data\":{\"name\":\"")
 		strings.write_string(output_json, get_symbol(self.symbols, argument.data))
 		strings.write_string(output_json, "\",\"scope\":\"line\"")
 	case .NUM:
-		strings.write_string(output_json, "\"id\":\"num\",\"data\":{\"name\":\"")
+		strings.write_string(output_json, "\"version\":1,\"id\":\"num\",\"data\":{\"name\":\"")
 		strings.write_string(output_json, get_symbol(self.symbols, argument.data))
 		strings.write_string(output_json, "\"")
 	case .TXT:
-		strings.write_string(output_json, "\"id\":\"txt\",\"data\":{\"name\":\"")
+		strings.write_string(output_json, "\"version\":1,\"id\":\"txt\",\"data\":{\"name\":\"")
 		strings.write_string(output_json, get_symbol(self.symbols, argument.data)[1:])
 		strings.write_string(output_json, "\"")
 	case .STR:
-		strings.write_string(output_json, "\"id\":\"comp\",\"data\":{\"name\":\"")
+		strings.write_string(output_json, "\"version\":1,\"id\":\"comp\",\"data\":{\"name\":\"")
 		strings.write_string(output_json, get_symbol(self.symbols, argument.data)[1:])
 		strings.write_string(output_json, "\"")
 	}

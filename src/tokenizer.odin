@@ -25,6 +25,8 @@ create_tokenizer_context :: proc() -> TokenizerContext {
 }
 
 destroy_tokenizer_context :: proc(self: ^TokenizerContext) {
+	for symbol in self.symbols[1:] do delete(symbol)
+
 	delete(self.symbols)
 	delete(self.tokens)
 }
@@ -147,6 +149,7 @@ tokenize_character :: proc(self: ^TokenizerContext, index: ^int) -> TokenizerSta
 		self.column_offset = u32(index^)
 		self.current_line += 1
 		index^ -= 1
+
 		return .SUCCESS
 	case character == '(':
 		current_token.type = .LPAREN
@@ -163,7 +166,7 @@ tokenize_character :: proc(self: ^TokenizerContext, index: ^int) -> TokenizerSta
 
 		symbol_builder, err := strings.builder_make(0, 16)
 		if err != nil {
-			fmt.println("Failed to create symbol builder.")
+			fmt.eprintln("Failed to create symbol builder.")
 			return .FAILURE
 		}
 
@@ -173,25 +176,21 @@ tokenize_character :: proc(self: ^TokenizerContext, index: ^int) -> TokenizerSta
 
 		symbol_string := strings.to_string(symbol_builder)
 
-		current_token.symbol_index = append_symbol(&self.symbols, symbol_string)
-
-		strings.builder_destroy(&symbol_builder)
+		current_token.symbol_index = append_symbol(&self.symbols, &symbol_string)
 	case character == '"':
 		current_token.type = .CONSTANT
-		current_token.symbol_index = len(self.symbols)
 
-		digits := strings.builder_make(0, 16)
-		strings.write_rune(&digits, '"')
+		content := strings.builder_make(0, 16)
+		strings.write_rune(&content, '"')
 
 		index^ += 1
 
 		for ; self.content[index^] != '"'; index^ += 1 {
-			strings.write_rune(&digits, self.content[index^])
+			strings.write_rune(&content, self.content[index^])
 		}
 
-		append(&self.symbols, strings.to_string(digits))
-
-		strings.builder_destroy(&digits)
+		content_string := strings.to_string(content)
+		current_token.symbol_index = append_symbol(&self.symbols, &content_string)
 	case unicode.is_digit(character):
 		current_token.type = .CONSTANT
 
@@ -209,9 +208,9 @@ tokenize_character :: proc(self: ^TokenizerContext, index: ^int) -> TokenizerSta
 			}
 		}
 
-		current_token.symbol_index = append_symbol(&self.symbols, strings.to_string(digits))
+		digits_string := strings.to_string(digits)
 
-		strings.builder_destroy(&digits)
+		current_token.symbol_index = append_symbol(&self.symbols, &digits_string)
 	case:
 		current_token.type = .IDENTIFIER
 
@@ -227,7 +226,8 @@ tokenize_character :: proc(self: ^TokenizerContext, index: ^int) -> TokenizerSta
 				strings.write_rune(&symbol_builder, self.content[index^])
 			}
 
-			current_token.symbol_index = append_symbol(&self.symbols, strings.to_string(symbol_builder))
+			symbol_string := strings.to_string(symbol_builder)
+			current_token.symbol_index = append_symbol(&self.symbols, &symbol_string)
 
 			strings.builder_destroy(&symbol_builder)
 
@@ -235,16 +235,14 @@ tokenize_character :: proc(self: ^TokenizerContext, index: ^int) -> TokenizerSta
 		}
 
 		for ; !is_special_character(self.content[index^]) &&
-		    !unicode.is_white_space(self.content[index^]);
-		    index^ += 1 {
+			!unicode.is_white_space(self.content[index^]);
+			index^ += 1 {
 			strings.write_rune(&symbol_builder, self.content[index^])
 		}
 
 		symbol_string := strings.to_string(symbol_builder)
 
-		current_token.symbol_index = append_symbol(&self.symbols, symbol_string)
-
-		strings.builder_destroy(&symbol_builder)
+		current_token.symbol_index = append_symbol(&self.symbols, &symbol_string)
 
 		if self.content[index^] == ';' {
 			index^ -= 1

@@ -3,6 +3,7 @@ package main
 import "core:fmt"
 import "core:mem"
 import "core:os"
+import "core:io"
 
 main :: proc() {
 	when ODIN_DEBUG {
@@ -23,19 +24,39 @@ main :: proc() {
 
 	cmd_args := os.args
 
+	file_path: string
+
 	if len(cmd_args) < 2 {
-		fmt.println("Usage: dignity <file path>")
-		return
+		// fmt.println("Usage: dignity <file path>")
+		// return
+		file_path = "examples\\hello.dig"
+	} else {
+		file_path = cmd_args[1]
 	}
 
 	tokenizer_context := create_tokenizer_context()
 	defer destroy_tokenizer_context(&tokenizer_context)
 
-	tokenizer_context.open_file = cmd_args[1]
+	tokenizer_context.open_file = file_path
 	tokenizer_status := tokenize(&tokenizer_context)
 	if tokenizer_status != .SUCCESS {
-		fmt.printfln("{}\n", tokenizer_context.symbols[:])
-		fmt.println(tokenizer_context.tokens[:])
+		fmt.eprintfln("{}\n", tokenizer_context.symbols[:])
+		fmt.eprintln(tokenizer_context.tokens[:])
+
+// Get the standard input stream
+    in_stream := os.to_stream(os.stdin)
+
+    // Read until newline character
+    for {
+        ch, sz, err := io.read_rune(in_stream)
+        if err != nil {
+            break
+        }
+        if ch == '\n' {
+            break
+        }
+    }
+		
 		return
 	}
 
@@ -46,8 +67,8 @@ main :: proc() {
 
 	parser_status := parse_program(&parser_context)
 	if parser_status != .SUCCESS {
-		fmt.printfln("{}\n\n{}\n", parser_context.symbols^, parser_context.tokens^)
-		fmt.println(parser_context.tree_nodes[:])
+		fmt.eprintfln("{}\n\n{}\n", parser_context.symbols^, parser_context.tokens^)
+		fmt.eprintln(parser_context.tree_nodes[:])
 		return
 	}
 
@@ -58,11 +79,11 @@ main :: proc() {
 
 	ir_generator_status := create_ir_from_ast(&ir_generator_context)
 	if ir_generator_status != .SUCCESS {
-		fmt.printfln("{}\n", ir_generator_context.symbols^)
+		fmt.eprintfln("{}\n", ir_generator_context.symbols^)
 		for node in ir_generator_context.tree_nodes^ {
-			fmt.println(node)
+			fmt.eprintln(node)
 		}
-		fmt.printfln("\n{}", ir_generator_context.instructions[:])
+		fmt.eprintfln("\n{}", ir_generator_context.instructions[:])
 		return
 	}
 
