@@ -5,6 +5,7 @@ import "core:strings"
 
 IAType :: enum {
 	LINE_VAR,
+	GAME_VAR,
 	NUM,
 	TXT,
 	STR,
@@ -45,7 +46,8 @@ InstructionTable :: distinct [dynamic]Instruction
 IRGeneratorContext :: struct {
 	tree_nodes:   ^[dynamic]ASTNode,
 	symbols:      ^SymbolTable,
-	variables:	  map[string]string,
+	variables:    map[string]string,
+	constants:	  map[string]string,
 	builder:      strings.Builder,
 	instructions: InstructionTable,
 	item_slot:    u32,
@@ -58,6 +60,7 @@ create_ir_generator_context :: proc(parser_context: ^ParserContext) -> IRGenerat
 	ir_generator_context.tree_nodes = &parser_context.tree_nodes
 	ir_generator_context.symbols = parser_context.symbols
 	ir_generator_context.variables = make(map[string]string)
+	ir_generator_context.constants = make(map[string]string)
 	ir_generator_context.builder = strings.builder_make(0, 16)
 	ir_generator_context.instructions = make(InstructionTable)
 
@@ -69,6 +72,7 @@ destroy_ir_generator_context :: proc(self: ^IRGeneratorContext) {
 		delete(instruction.arguments)
 	}
 
+	delete(self.constants)
 	delete(self.variables)
 	strings.builder_destroy(&self.builder)
 	delete(self.instructions)
@@ -113,21 +117,29 @@ create_ir_from_node :: proc(
 
 		identifier := get_symbol(self.symbols, self.tree_nodes[current_node.children[0]].data)
 		value := get_symbol(self.symbols, self.tree_nodes[current_node.children[1]].data)
-		self.variables[identifier] = value
+		self.constants[identifier] = value
 
 		return .SUCCESS
 	case .DEFINE_SET:
 		append(&self.instructions, create_instruction(.SET))
+	case .DEFINE:
+		identifier := get_symbol(self.symbols, self.tree_nodes[current_node.children[0]].data)
+		variable_type := get_symbol(self.symbols, current_node.data)
+
+		self.variables[identifier] = variable_type
+
+		return .SUCCESS
 	case .SET:
+		hmm, ok := self.variables[get_symbol(self.symbols, current_node.data)]
 		append(
 			&self.instructions,
 			create_instruction(
 				.SET,
-				{InstructionArgument{type = .LINE_VAR, data = current_node.data}},
+				{InstructionArgument{type = ok ? .GAME_VAR : .LINE_VAR, data = current_node.data}},
 			),
 		)
 	case .CONSTANT:
-		variable_value, ok := self.variables[get_symbol(self.symbols, current_node.data)]
+		variable_value, ok := self.constants[get_symbol(self.symbols, current_node.data)]
 
 		if ok {
 			current_node.data = append_symbol(self.symbols, &variable_value)
@@ -143,7 +155,8 @@ create_ir_from_node :: proc(
 
 		return .SUCCESS
 	case .IDENTIFIER:
-		variable_value, ok := self.variables[get_symbol(self.symbols, current_node.data)]
+		identifier := get_symbol(self.symbols, current_node.data)
+		variable_value, ok := self.constants[identifier]
 
 		if !ok {
 			append(
@@ -246,6 +259,10 @@ create_json_from_argument :: proc(
 		strings.write_string(output_json, "\"version\":1,\"id\":\"var\",\"data\":{\"name\":\"")
 		strings.write_string(output_json, get_symbol(self.symbols, argument.data))
 		strings.write_string(output_json, "\",\"scope\":\"line\"")
+	case .GAME_VAR:
+		strings.write_string(output_json, "\"version\":1,\"id\":\"var\",\"data\":{\"name\":\"")
+		strings.write_string(output_json, get_symbol(self.symbols, argument.data))
+		strings.write_string(output_json, "\",\"scope\":\"unsaved\"")
 	case .NUM:
 		strings.write_string(output_json, "\"version\":1,\"id\":\"num\",\"data\":{\"name\":\"")
 		strings.write_string(output_json, get_symbol(self.symbols, argument.data))

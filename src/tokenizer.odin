@@ -208,6 +208,8 @@ tokenize_character :: proc(self: ^TokenizerContext, index: ^int) -> TokenizerSta
 			}
 		}
 
+		index^ -= 1
+
 		digits_string := strings.to_string(digits)
 
 		current_token.symbol_index = append_symbol(&self.symbols, &digits_string)

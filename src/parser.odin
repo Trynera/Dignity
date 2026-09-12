@@ -3,8 +3,8 @@ package main
 import "core:fmt"
 
 /*
-    The data on each node can be multiple things,
-    specifically for identifiers it is a symbol index!
+	The data on each node can be multiple things,
+	specifically for identifiers it is a symbol index!
 */
 
 ParserContext :: struct {
@@ -40,6 +40,7 @@ NodeType :: enum {
 	IDENTIFIER,
 	DEFINE_CONST,
 	DEFINE_SET,
+	DEFINE,
 	SET,
 	PLUS,
 	CONSTANT,
@@ -101,6 +102,7 @@ parse_tlstmt :: proc(self: ^ParserContext, token_index: ^int) -> ParserStatus {
 	}
 
 	identifier_node := create_node(.IDENTIFIER, current_token.symbol_index)
+	append(&self.tree_nodes, identifier_node)
 
 	token_index^ += 1
 	current_token = &self.tokens[token_index^]
@@ -116,13 +118,21 @@ parse_tlstmt :: proc(self: ^ParserContext, token_index: ^int) -> ParserStatus {
 
 	type_identifier := "auto"
 	type_data := current_token.symbol_index
-	if current_token.type != .COLON {
+	define_node := create_node(current_token.type == .COLON ? .DEFINE_CONST : .DEFINE,
+							   type_data, {len(self.tree_nodes) - 1})
+
+	if type_data != NO_SYMBOL_INDEX {
 		type_identifier = get_symbol(self.symbols, type_data)
+
+		token_index^ += 1
+		current_token = &self.tokens[token_index^]
+
+		if current_token.type == .SEMICOLON {
+			append(&self.tree_nodes, define_node)
+
+			return .SUCCESS
+		}
 	}
-
-	define_node := create_node(.DEFINE_CONST, type_data, {len(self.tree_nodes)})
-
-	append(&self.tree_nodes, identifier_node)
 
 	token_index^ += 1
 	parse_expr(self, token_index) or_return
@@ -177,6 +187,15 @@ parse_stmt :: proc(self: ^ParserContext, token_index: ^int) -> ParserStatus {
 
 		append(&set_node.children, len(self.tree_nodes) - 1)
 		append(&self.tree_nodes, set_node)
+
+		token_index^ += 1
+		current_token = &self.tokens[token_index^]
+
+		if current_token.type != .SEMICOLON {
+			fmt.eprintfln("Missing ';' at {}:{}", current_token.line, current_token.column)
+
+			return .FAILURE
+		}
 
 		return .SUCCESS
 	}

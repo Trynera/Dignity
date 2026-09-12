@@ -43,24 +43,22 @@ main :: proc() {
 		fmt.eprintfln("{}\n", tokenizer_context.symbols[:])
 		fmt.eprintln(tokenizer_context.tokens[:])
 
-// Get the standard input stream
-    in_stream := os.to_stream(os.stdin)
+	// Get the standard input stream
+	in_stream := os.to_stream(os.stdin)
 
-    // Read until newline character
-    for {
-        ch, sz, err := io.read_rune(in_stream)
-        if err != nil {
-            break
-        }
-        if ch == '\n' {
-            break
-        }
-    }
+	// Read until newline character
+	for {
+		ch, sz, err := io.read_rune(in_stream)
+		if err != nil {
+			break
+		}
+		if ch == '\n' {
+			break
+		}
+	}
 		
 		return
 	}
-
-	fmt.printfln("{}\n", tokenizer_context.symbols[:])
 
 	parser_context := create_parser_context(&tokenizer_context)
 	defer destroy_parser_context(&parser_context)
@@ -74,8 +72,6 @@ main :: proc() {
 
 	ir_generator_context := create_ir_generator_context(&parser_context)
 	defer destroy_ir_generator_context(&ir_generator_context)
-
-	fmt.printfln("{}\n", parser_context.tree_nodes[:])
 
 	ir_generator_status := create_ir_from_ast(&ir_generator_context)
 	if ir_generator_status != .SUCCESS {
