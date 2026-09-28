@@ -1,26 +1,17 @@
 // std :: #import("std");
 
-yo :: "Hello, DF!";
-
-game_variable : txt;
+CONST_PI :: 3.141;
 
 hello :: () {
-	game_variable = "interesting";
-	hmm := yo;
-
-	game_variable = hmm;
+	hmm := 2.0 + CONST_PI + CONST_PI;
 }
 
 /*
+	SymbolTable []string
+	ConstantHashMap hash[string]string
+	VariableHashMap hash[string]type
 
-SymbolTable []string
-ConstantHashMap hash[string]string
-VariableHashMap hash[string]type
-
-FN Hello()
-   SET variable_name 30.0
-   SET game_variable "interesting"
-   SET other_variable "Hello, World!"
-END
-
+	FN Hello()
+		SET hmm Math("1.0+3.09")
+	END
 */

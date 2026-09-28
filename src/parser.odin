@@ -1,6 +1,7 @@
 package main
 
 import "core:fmt"
+import "core:strings"
 
 /*
 	The data on each node can be multiple things,
@@ -42,7 +43,7 @@ NodeType :: enum {
 	DEFINE_SET,
 	DEFINE,
 	SET,
-	PLUS,
+	OPERATOR,
 	CONSTANT,
 	ARGUMENT,
 }
@@ -239,7 +240,6 @@ parse_stmt :: proc(self: ^ParserContext, token_index: ^int) -> ParserStatus {
 
 	if current_token.type != .SEMICOLON {
 		fmt.eprintfln("Missing ';' at {}:{}", current_token.line, current_token.column)
-
 		return .FAILURE
 	}
 
@@ -263,8 +263,47 @@ parse_expr :: proc(self: ^ParserContext, token_index: ^int) -> ParserStatus {
 		}
 	}
 
-	constant_node := create_node(current_token.type == .IDENTIFIER ? .IDENTIFIER : .CONSTANT, current_token.symbol_index)
+	if self.tokens[token_index^+1].type == .SEMICOLON {
+		constant_node := create_node(current_token.type == .IDENTIFIER ? .IDENTIFIER : .CONSTANT,
+									 current_token.symbol_index)
+		append(&self.tree_nodes, constant_node)
+
+		return .SUCCESS
+	}
+
+	constant_node := create_node(current_token.type == .IDENTIFIER ? .IDENTIFIER : .CONSTANT,
+								 current_token.symbol_index)
 	append(&self.tree_nodes, constant_node)
+
+	token_index^ += 1
+	current_token = &self.tokens[token_index^]
+
+	operator_node := create_node(.OPERATOR)
+
+	append(&operator_node.children, len(self.tree_nodes) - 1)
+
+	operator_builder := strings.builder_make(0, 4)
+	for current_token.type != .SEMICOLON {
+		strings.write_rune(&operator_builder, '+')
+
+		token_index^ += 1
+		current_token = &self.tokens[token_index^]
+
+		constant_node = create_node(current_token.type == .IDENTIFIER ? .IDENTIFIER : .CONSTANT,
+									current_token.symbol_index)
+		append(&self.tree_nodes, constant_node)
+		append(&operator_node.children, len(self.tree_nodes) - 1)
+
+		token_index^ += 1
+		current_token = &self.tokens[token_index^]
+	}
+
+	operator_string := strings.to_string(operator_builder)
+	operator_node.data = append_symbol(self.symbols, &operator_string)
+
+	append(&self.tree_nodes, operator_node)
+
+	token_index^ -= 1
 
 	return .SUCCESS
 }

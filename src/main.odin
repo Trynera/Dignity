@@ -43,19 +43,18 @@ main :: proc() {
 		fmt.eprintfln("{}\n", tokenizer_context.symbols[:])
 		fmt.eprintln(tokenizer_context.tokens[:])
 
-	// Get the standard input stream
-	in_stream := os.to_stream(os.stdin)
+		in_stream := os.to_stream(os.stdin)
 
-	// Read until newline character
-	for {
-		ch, sz, err := io.read_rune(in_stream)
-		if err != nil {
-			break
+		// Read until newline character
+		for {
+			ch, sz, err := io.read_rune(in_stream)
+			if err != nil {
+				break
+			}
+			if ch == '\n' {
+				break
+			}
 		}
-		if ch == '\n' {
-			break
-		}
-	}
 		
 		return
 	}

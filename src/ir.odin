@@ -9,6 +9,7 @@ IAType :: enum {
 	NUM,
 	TXT,
 	STR,
+	MATH,
 }
 
 InstructionArgument :: struct {
@@ -48,8 +49,8 @@ IRGeneratorContext :: struct {
 	symbols:      ^SymbolTable,
 	variables:    map[string]string,
 	constants:	  map[string]string,
-	builder:      strings.Builder,
 	instructions: InstructionTable,
+	builder:      strings.Builder,
 	item_slot:    u32,
 	block_depth:  u32,
 }
@@ -61,8 +62,8 @@ create_ir_generator_context :: proc(parser_context: ^ParserContext) -> IRGenerat
 	ir_generator_context.symbols = parser_context.symbols
 	ir_generator_context.variables = make(map[string]string)
 	ir_generator_context.constants = make(map[string]string)
-	ir_generator_context.builder = strings.builder_make(0, 16)
 	ir_generator_context.instructions = make(InstructionTable)
+	ir_generator_context.builder = strings.builder_make(0, 16)
 
 	return ir_generator_context
 }
@@ -72,10 +73,10 @@ destroy_ir_generator_context :: proc(self: ^IRGeneratorContext) {
 		delete(instruction.arguments)
 	}
 
-	delete(self.constants)
 	delete(self.variables)
-	strings.builder_destroy(&self.builder)
+	delete(self.constants)
 	delete(self.instructions)
+	strings.builder_destroy(&self.builder)
 }
 
 IRGeneratorStatus :: enum {
@@ -126,11 +127,11 @@ create_ir_from_node :: proc(
 		identifier := get_symbol(self.symbols, self.tree_nodes[current_node.children[0]].data)
 		variable_type := get_symbol(self.symbols, current_node.data)
 
-		self.variables[identifier] = variable_type
+		self.constants[identifier] = variable_type
 
 		return .SUCCESS
 	case .SET:
-		hmm, ok := self.variables[get_symbol(self.symbols, current_node.data)]
+		_, ok := self.constants[get_symbol(self.symbols, current_node.data)]
 		append(
 			&self.instructions,
 			create_instruction(
@@ -138,6 +139,36 @@ create_ir_from_node :: proc(
 				{InstructionArgument{type = ok ? .GAME_VAR : .LINE_VAR, data = current_node.data}},
 			),
 		)
+	case .OPERATOR:
+		operators_symbol := get_symbol(self.symbols, current_node.data)
+
+		item_builder := strings.builder_make(0, 4)
+		current_child_node: ^ASTNode
+
+		for child_index, current_index in current_node.children {
+			if current_index != 0 {
+				strings.write_byte(&item_builder, operators_symbol[current_index-1])
+			}
+			current_child_node = &self.tree_nodes[child_index]
+			constant_value, ok := self.constants[get_symbol(self.symbols, current_child_node.data)]
+
+			if ok {
+				strings.write_string(&item_builder, constant_value)
+				continue
+			}
+
+			strings.write_string(&item_builder, get_symbol(self.symbols, current_child_node.data))
+		}
+
+		symbol_string := strings.to_string(item_builder)
+		symbol_index := append_symbol(self.symbols, &symbol_string)
+
+		append(
+			&self.instructions[len(self.instructions) - 1].arguments,
+			InstructionArgument{type = .MATH, data = symbol_index},
+		)
+
+		return .SUCCESS
 	case .CONSTANT:
 		variable_value, ok := self.constants[get_symbol(self.symbols, current_node.data)]
 
@@ -208,7 +239,7 @@ create_json_from_instruction :: proc(self: ^IRGeneratorContext, instruction: ^In
 		)
 		strings.write_string(
 			&self.builder,
-			"\",\"id\":\"block\",\"args\":{\"items\":[{\"item\":{\"version\":1,\"id\":\"bl_tag\",\"data\":{\"option\":\"False\",\"tag\":\"Is Hidden\",\"action\":\"dynamic\",\"block\":\"func\"}},\"slot\":26}]}}",
+			"\",\"id\":\"block\",\"args\":{\"items\":[{\"item\":{\"id\":\"bl_tag\",\"data\":{\"option\":\"False\",\"tag\":\"Is Hidden\",\"action\":\"dynamic\",\"block\":\"func\"}},\"slot\":26}]}}",
 		)
 	case .PROCESS:
 		strings.write_string(&self.builder, "{\"block\":\"process\",\"data\":\"")
@@ -218,7 +249,7 @@ create_json_from_instruction :: proc(self: ^IRGeneratorContext, instruction: ^In
 		)
 		strings.write_string(
 			&self.builder,
-			"\",\"id\":\"block\",\"args\":{\"items\":[{\"item\":{\"version\":1,\"id\":\"bl_tag\",\"data\":{\"option\":\"False\",\"tag\":\"Is Hidden\",\"action\":\"dynamic\",\"block\":\"process\"}},\"slot\":26}]}}",
+			"\",\"id\":\"block\",\"args\":{\"items\":[{\"item\":{\"id\":\"bl_tag\",\"data\":{\"option\":\"False\",\"tag\":\"Is Hidden\",\"action\":\"dynamic\",\"block\":\"process\"}},\"slot\":26}]}}",
 		)
 	case .SET:
 		strings.write_string(
@@ -239,8 +270,6 @@ create_json_from_instruction :: proc(self: ^IRGeneratorContext, instruction: ^In
 			&self.builder,
 			"]},\"block\":\"set_var\",\"inverted\":\"\",\"attribute\":\"\",\"target\":\"\"}",
 		)
-
-		break
 	case .END:
 	}
 }
@@ -256,25 +285,29 @@ create_json_from_argument :: proc(
 
 	switch argument.type {
 	case .LINE_VAR:
-		strings.write_string(output_json, "\"version\":1,\"id\":\"var\",\"data\":{\"name\":\"")
+		strings.write_string(output_json, "\"id\":\"var\",\"data\":{\"name\":\"")
 		strings.write_string(output_json, get_symbol(self.symbols, argument.data))
 		strings.write_string(output_json, "\",\"scope\":\"line\"")
 	case .GAME_VAR:
-		strings.write_string(output_json, "\"version\":1,\"id\":\"var\",\"data\":{\"name\":\"")
+		strings.write_string(output_json, "\"id\":\"var\",\"data\":{\"name\":\"")
 		strings.write_string(output_json, get_symbol(self.symbols, argument.data))
 		strings.write_string(output_json, "\",\"scope\":\"unsaved\"")
 	case .NUM:
-		strings.write_string(output_json, "\"version\":1,\"id\":\"num\",\"data\":{\"name\":\"")
+		strings.write_string(output_json, "\"id\":\"num\",\"data\":{\"name\":\"")
 		strings.write_string(output_json, get_symbol(self.symbols, argument.data))
 		strings.write_string(output_json, "\"")
 	case .TXT:
-		strings.write_string(output_json, "\"version\":1,\"id\":\"txt\",\"data\":{\"name\":\"")
+		strings.write_string(output_json, "\"id\":\"txt\",\"data\":{\"name\":\"")
 		strings.write_string(output_json, get_symbol(self.symbols, argument.data)[1:])
 		strings.write_string(output_json, "\"")
 	case .STR:
-		strings.write_string(output_json, "\"version\":1,\"id\":\"comp\",\"data\":{\"name\":\"")
+		strings.write_string(output_json, "\"id\":\"comp\",\"data\":{\"name\":\"")
 		strings.write_string(output_json, get_symbol(self.symbols, argument.data)[1:])
 		strings.write_string(output_json, "\"")
+	case .MATH:
+		strings.write_string(output_json, "\"id\":\"num\",\"data\":{\"name\":\"%math(")
+		strings.write_string(output_json, get_symbol(self.symbols, argument.data))
+		strings.write_string(output_json, ")\"")
 	}
 
 	strings.write_string(output_json, "}}}")
