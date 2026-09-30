@@ -284,7 +284,7 @@ parse_expr :: proc(self: ^ParserContext, token_index: ^int) -> ParserStatus {
 
 	operator_builder := strings.builder_make(0, 4)
 	for current_token.type != .SEMICOLON {
-		strings.write_rune(&operator_builder, '+')
+		strings.write_rune(&operator_builder, get_operator_rune(current_token.type))
 
 		token_index^ += 1
 		current_token = &self.tokens[token_index^]
@@ -360,4 +360,19 @@ parse_func :: proc(self: ^ParserContext, token_index: ^int) -> ParserStatus {
 	append(&self.tree_nodes, func_node)
 
 	return .SUCCESS
+}
+
+get_operator_rune :: proc(type: TokenType) -> rune {
+	#partial switch type {
+	case .PLUS:
+		return '+'
+	case .MINUS:
+		return '-'
+	case .MUL:
+		return '*'
+	case .DIV:
+		return '/'
+	}
+
+	return ' '
 }

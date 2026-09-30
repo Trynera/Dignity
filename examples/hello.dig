@@ -3,7 +3,7 @@
 CONST_PI :: 3.141;
 
 hello :: () {
-	hmm := 2.0 + CONST_PI + CONST_PI;
+	hmm := 2.0 + 3.0 * CONST_PI;
 }
 
 /*
@@ -11,7 +11,7 @@ hello :: () {
 	ConstantHashMap hash[string]string
 	VariableHashMap hash[string]type
 
-	FN Hello()
-		SET hmm Math("1.0+3.09")
+	FN hello()
+		SET hmm Math("2.0+3.0*3.141")
 	END
 */
