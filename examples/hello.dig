@@ -12,6 +12,6 @@ hello :: () {
 	VariableHashMap hash[string]type
 
 	FN hello()
-		SET hmm Math("2.0+3.0*3.141")
+		SET hmm Math("3.0*3.141+2.0")
 	END
 */

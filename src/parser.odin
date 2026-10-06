@@ -9,17 +9,17 @@ import "core:strings"
 */
 
 ParserContext :: struct {
-	tree_nodes: [dynamic]ASTNode,
 	symbols:    ^SymbolTable,
 	tokens:     ^TokenTable,
+	tree_nodes: [dynamic]ASTNode,
 }
 
 create_parser_context :: proc(tokenizer_context: ^TokenizerContext) -> ParserContext {
 	parser_context := ParserContext{}
 
-	parser_context.tree_nodes = make([dynamic]ASTNode, 1)
 	parser_context.symbols = &tokenizer_context.symbols
 	parser_context.tokens = &tokenizer_context.tokens
+	parser_context.tree_nodes = make([dynamic]ASTNode, 1)
 
 	return parser_context
 }
@@ -372,7 +372,14 @@ get_operator_rune :: proc(type: TokenType) -> rune {
 		return '*'
 	case .DIV:
 		return '/'
+	case .SEMICOLON:
+		return ';'
+	case:
+		break
 	}
 
 	return ' '
+}
+
+shunting_yard :: proc(self: ^ParserContext, operator_builder: ^strings.Builder, operator: rune) {
 }

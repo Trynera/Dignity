@@ -145,6 +145,10 @@ create_ir_from_node :: proc(
 		item_builder := strings.builder_make(0, 4)
 		current_child_node: ^ASTNode
 
+		unclosed_amount := 0
+		current_presedence := 0
+		next_operator_presedence := 0
+
 		for child_index, current_index in current_node.children {
 			if current_index != 0 {
 				strings.write_byte(&item_builder, operators_symbol[current_index-1])
@@ -152,12 +156,32 @@ create_ir_from_node :: proc(
 			current_child_node = &self.tree_nodes[child_index]
 			constant_value, ok := self.constants[get_symbol(self.symbols, current_child_node.data)]
 
+			if current_index != len(operators_symbol) {
+				next_operator_presedence = get_operator_presedence(operators_symbol[current_index])
+			}
+
+			if next_operator_presedence > current_presedence {
+				strings.write_string(&item_builder, "%math(")
+				current_presedence = next_operator_presedence
+				unclosed_amount += 1
+			}
+			defer if next_operator_presedence < current_presedence {
+				strings.write_string(&item_builder, ")")
+				current_presedence = next_operator_presedence
+				unclosed_amount -= 1
+			}
+
 			if ok {
 				strings.write_string(&item_builder, constant_value)
 				continue
 			}
 
 			strings.write_string(&item_builder, get_symbol(self.symbols, current_child_node.data))
+		}
+
+		for unclosed_amount > 0 {
+			strings.write_rune(&item_builder, ')')
+			unclosed_amount -= 1
 		}
 
 		symbol_string := strings.to_string(item_builder)
@@ -305,10 +329,25 @@ create_json_from_argument :: proc(
 		strings.write_string(output_json, get_symbol(self.symbols, argument.data)[1:])
 		strings.write_string(output_json, "\"")
 	case .MATH:
-		strings.write_string(output_json, "\"id\":\"num\",\"data\":{\"name\":\"%math(")
+		strings.write_string(output_json, "\"id\":\"num\",\"data\":{\"name\":\"")
 		strings.write_string(output_json, get_symbol(self.symbols, argument.data))
-		strings.write_string(output_json, ")\"")
+		strings.write_string(output_json, "\"")
 	}
 
 	strings.write_string(output_json, "}}}")
+}
+
+get_operator_presedence :: proc(c: u8) -> int {
+	switch c {
+	case '+':
+		fallthrough
+	case '-':
+		return 1
+	case '*':
+		fallthrough
+	case '/':
+		return 2
+	}
+
+	return 0
 }
