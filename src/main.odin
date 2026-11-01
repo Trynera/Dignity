@@ -1,5 +1,6 @@
 package main
 
+import "core:time"
 import "core:fmt"
 import "core:mem"
 import "core:os"
@@ -37,6 +38,9 @@ main :: proc() {
 	tokenizer_context := create_tokenizer_context()
 	defer destroy_tokenizer_context(&tokenizer_context)
 
+	start := time.now()
+	total_time: time.Duration
+
 	tokenizer_context.open_file = file_path
 	tokenizer_status := tokenize(&tokenizer_context)
 	if tokenizer_status != .SUCCESS {
@@ -59,8 +63,13 @@ main :: proc() {
 		return
 	}
 
+	fmt.printfln("\nTokenization: {}", time.since(start))
+	total_time = time.since(start)
+
 	parser_context := create_parser_context(&tokenizer_context)
 	defer destroy_parser_context(&parser_context)
+
+	start = time.now()
 
 	parser_status := parse_program(&parser_context)
 	if parser_status != .SUCCESS {
@@ -69,8 +78,13 @@ main :: proc() {
 		return
 	}
 
+	fmt.printfln("Parsing: {}", time.since(start))
+	total_time += time.since(start)
+
 	ir_generator_context := create_ir_generator_context(&parser_context)
 	defer destroy_ir_generator_context(&ir_generator_context)
+
+	start = time.now()
 
 	ir_generator_status := create_ir_from_ast(&ir_generator_context)
 	if ir_generator_status != .SUCCESS {
@@ -82,7 +96,17 @@ main :: proc() {
 		return
 	}
 
+	fmt.printfln("IR Generation: {}", time.since(start))
+	total_time += time.since(start)
+
+	start = time.now()
+
 	generated_json := create_json_from_ir(&ir_generator_context)
+
+	fmt.printfln("JSON Creation: {}", time.since(start))
+	total_time += time.since(start)
+
+	fmt.printfln("Total: {}\n", total_time)
 
 	fmt.println(generated_json)
 }

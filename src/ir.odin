@@ -122,12 +122,17 @@ create_ir_from_node :: proc(
 
 		return .SUCCESS
 	case .DEFINE_SET:
+		identifier := get_symbol(self.symbols, self.tree_nodes[current_node.children[0]].data)
+		variable_type := get_symbol(self.symbols, current_node.data)
+
+		self.variables[identifier] = variable_type
+
 		append(&self.instructions, create_instruction(.SET))
 	case .DEFINE:
 		identifier := get_symbol(self.symbols, self.tree_nodes[current_node.children[0]].data)
 		variable_type := get_symbol(self.symbols, current_node.data)
 
-		self.constants[identifier] = variable_type
+		self.variables[identifier] = variable_type
 
 		return .SUCCESS
 	case .SET:
@@ -154,7 +159,10 @@ create_ir_from_node :: proc(
 				strings.write_byte(&item_builder, operators_symbol[current_index-1])
 			}
 			current_child_node = &self.tree_nodes[child_index]
-			constant_value, ok := self.constants[get_symbol(self.symbols, current_child_node.data)]
+
+			expression_symbol := get_symbol(self.symbols, current_child_node.data)
+			constant_value, const_ok := self.constants[expression_symbol]
+			variable_value, var_ok := self.variables[expression_symbol]
 
 			if current_index != len(operators_symbol) {
 				next_operator_presedence = get_operator_presedence(operators_symbol[current_index])
@@ -171,8 +179,13 @@ create_ir_from_node :: proc(
 				unclosed_amount -= 1
 			}
 
-			if ok {
+			if const_ok {
 				strings.write_string(&item_builder, constant_value)
+				continue
+			} else if var_ok {
+				strings.write_string(&item_builder, "%var(")
+				strings.write_string(&item_builder, expression_symbol)
+				strings.write_string(&item_builder, ")")
 				continue
 			}
 
@@ -339,14 +352,10 @@ create_json_from_argument :: proc(
 
 get_operator_presedence :: proc(c: u8) -> int {
 	switch c {
-	case '+':
-		fallthrough
-	case '-':
-		return 1
-	case '*':
-		fallthrough
-	case '/':
-		return 2
+	case '+': fallthrough
+	case '-': return 1
+	case '*': fallthrough
+	case '/': return 2
 	}
 
 	return 0

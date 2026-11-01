@@ -263,7 +263,7 @@ parse_expr :: proc(self: ^ParserContext, token_index: ^int) -> ParserStatus {
 		}
 	}
 
-	if self.tokens[token_index^+1].type == .SEMICOLON {
+	if self.tokens[token_index^+1].type == .SEMICOLON || self.tokens[token_index^+1].type == .RPAREN {
 		constant_node := create_node(current_token.type == .IDENTIFIER ? .IDENTIFIER : .CONSTANT,
 									 current_token.symbol_index)
 		append(&self.tree_nodes, constant_node)
@@ -283,11 +283,16 @@ parse_expr :: proc(self: ^ParserContext, token_index: ^int) -> ParserStatus {
 	append(&operator_node.children, len(self.tree_nodes) - 1)
 
 	operator_builder := strings.builder_make(0, 4)
-	for current_token.type != .SEMICOLON {
+	for current_token.type != .SEMICOLON && current_token.type != .RPAREN {
 		strings.write_rune(&operator_builder, get_operator_rune(current_token.type))
 
 		token_index^ += 1
 		current_token = &self.tokens[token_index^]
+
+		if current_token.type == .LPAREN {
+			token_index^ += 1
+			parse_expr(self, token_index) or_return
+		}
 
 		constant_node = create_node(current_token.type == .IDENTIFIER ? .IDENTIFIER : .CONSTANT,
 									current_token.symbol_index)
@@ -305,6 +310,10 @@ parse_expr :: proc(self: ^ParserContext, token_index: ^int) -> ParserStatus {
 
 	token_index^ -= 1
 
+	return .SUCCESS
+}
+
+parse_math :: proc(self: ^ParserContext, token_index: ^int) -> ParserStatus {
 	return .SUCCESS
 }
 
@@ -364,22 +373,12 @@ parse_func :: proc(self: ^ParserContext, token_index: ^int) -> ParserStatus {
 
 get_operator_rune :: proc(type: TokenType) -> rune {
 	#partial switch type {
-	case .PLUS:
-		return '+'
-	case .MINUS:
-		return '-'
-	case .MUL:
-		return '*'
-	case .DIV:
-		return '/'
-	case .SEMICOLON:
-		return ';'
-	case:
-		break
+	case .PLUS: return '+'
+	case .MINUS: return '-'
+	case .MUL: return '*'
+	case .DIV: return '/'
+	case .SEMICOLON: return ';'
 	}
 
 	return ' '
-}
-
-shunting_yard :: proc(self: ^ParserContext, operator_builder: ^strings.Builder, operator: rune) {
 }

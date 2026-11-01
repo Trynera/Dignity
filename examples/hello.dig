@@ -3,15 +3,6 @@
 CONST_PI :: 3.141;
 
 hello :: () {
-	hmm := 2.0 + 3.0 * CONST_PI;
+	testing := CONST_PI;
+	hmm := 2.0 + /* 3.0 + CONST_PI * */ testing;
 }
-
-/*
-	SymbolTable []string
-	ConstantHashMap hash[string]string
-	VariableHashMap hash[string]type
-
-	FN hello()
-		SET hmm Math("3.0*3.141+2.0")
-	END
-*/
