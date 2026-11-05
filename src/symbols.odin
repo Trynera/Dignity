@@ -1,6 +1,7 @@
 package main
 
 import "core:fmt"
+import "core:unicode"
 import "core:math/bits"
 
 SymbolTable :: distinct [dynamic]string
@@ -32,5 +33,18 @@ append_symbol :: proc(self: ^SymbolTable, symbol: ^string) -> SymbolIndex {
 }
 
 is_special_character :: proc(r: rune) -> bool {
-	return r <= '!' && r >= '/' || r <= ':' && r >= '?' || r == ';' || r <= '[' && r >= '^'
+	switch (r) {
+	case '!'..='/':
+		break
+	case ':'..='@':
+		break
+	case '['..='^':
+		break
+	case '{'..='~':
+		break
+	case:
+		return false
+	}
+
+	return true
 }

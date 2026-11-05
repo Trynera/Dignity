@@ -42,6 +42,7 @@ TokenType :: enum {
 	MINUS,
 	MUL,
 	DIV,
+	REM,
 	LPAREN,
 	RPAREN,
 	LBRACE,
@@ -151,6 +152,8 @@ tokenize_character :: proc(self: ^TokenizerContext, index: ^int) -> TokenizerSta
 		index^ -= 1
 
 		return .SUCCESS
+	case character == '%':
+		current_token.type = .REM
 	case character == '(':
 		current_token.type = .LPAREN
 	case character == ')':
@@ -246,9 +249,7 @@ tokenize_character :: proc(self: ^TokenizerContext, index: ^int) -> TokenizerSta
 
 		current_token.symbol_index = append_symbol(&self.symbols, &symbol_string)
 
-		if self.content[index^] == ';' {
-			index^ -= 1
-		}
+		index^ -= 1
 	}
 
 	append(&self.tokens, current_token)

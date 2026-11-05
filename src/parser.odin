@@ -292,6 +292,11 @@ parse_expr :: proc(self: ^ParserContext, token_index: ^int) -> ParserStatus {
 		if current_token.type == .LPAREN {
 			token_index^ += 1
 			parse_expr(self, token_index) or_return
+			append(&operator_node.children, len(self.tree_nodes) - 1)
+
+			token_index^ += 2
+			current_token = &self.tokens[token_index^]
+			continue
 		}
 
 		constant_node = create_node(current_token.type == .IDENTIFIER ? .IDENTIFIER : .CONSTANT,
@@ -303,17 +308,13 @@ parse_expr :: proc(self: ^ParserContext, token_index: ^int) -> ParserStatus {
 		current_token = &self.tokens[token_index^]
 	}
 
+	token_index^ -= 1
+
 	operator_string := strings.to_string(operator_builder)
 	operator_node.data = append_symbol(self.symbols, &operator_string)
 
 	append(&self.tree_nodes, operator_node)
 
-	token_index^ -= 1
-
-	return .SUCCESS
-}
-
-parse_math :: proc(self: ^ParserContext, token_index: ^int) -> ParserStatus {
 	return .SUCCESS
 }
 
@@ -377,6 +378,7 @@ get_operator_rune :: proc(type: TokenType) -> rune {
 	case .MINUS: return '-'
 	case .MUL: return '*'
 	case .DIV: return '/'
+	case .REM : return '%'
 	case .SEMICOLON: return ';'
 	}
 

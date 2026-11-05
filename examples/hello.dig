@@ -4,5 +4,5 @@ CONST_PI :: 3.141;
 
 hello :: () {
 	testing := CONST_PI;
-	hmm := 2.0 + /* 3.0 + CONST_PI * */ testing;
+	hmm := 2.0 + (3.0 + CONST_PI) * testing;
 }
