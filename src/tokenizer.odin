@@ -80,6 +80,7 @@ tokenize :: proc(self: ^TokenizerContext) -> TokenizerStatus {
 	}
 
 	self.content = utf8.string_to_runes(string(data))
+
 	self.current_line = 0
 	self.column_offset = 0
 	for index := 0; index < len(self.content); index += 1 {
@@ -180,6 +181,26 @@ tokenize_character :: proc(self: ^TokenizerContext, index: ^int) -> TokenizerSta
 		symbol_string := strings.to_string(symbol_builder)
 
 		current_token.symbol_index = append_symbol(&self.symbols, &symbol_string)
+	case character == '\'':
+		current_token.type = .CONSTANT
+
+		content := strings.builder_make(0, 16)
+		strings.write_rune(&content, '"')
+
+		index^ += 1
+
+		for ; self.content[index^] != '\''; index^ += 1 {
+			if self.content[index^] == '\\' && self.content[index^+1] == '\'' {
+				strings.write_rune(&content, '\'')
+				index^ += 1
+				continue
+			}
+
+			strings.write_rune(&content, self.content[index^])
+		}
+
+		content_string := strings.to_string(content)
+		current_token.symbol_index = append_symbol(&self.symbols, &content_string)
 	case character == '"':
 		current_token.type = .CONSTANT
 
@@ -189,6 +210,12 @@ tokenize_character :: proc(self: ^TokenizerContext, index: ^int) -> TokenizerSta
 		index^ += 1
 
 		for ; self.content[index^] != '"'; index^ += 1 {
+			if self.content[index^] == '\\' && self.content[index^+1] == '\"' {
+				strings.write_rune(&content, '\"')
+				index^ += 1
+				continue
+			}
+
 			strings.write_rune(&content, self.content[index^])
 		}
 

@@ -345,11 +345,21 @@ create_json_from_argument :: proc(
 		strings.write_string(output_json, "\"")
 	case .TXT:
 		strings.write_string(output_json, "\"id\":\"txt\",\"data\":{\"name\":\"")
-		strings.write_string(output_json, get_symbol(self.symbols, argument.data)[1:])
+		for r in get_symbol(self.symbols, argument.data)[1:] {
+			if r == '\"' {
+				strings.write_rune(output_json, '\\')
+			}
+			strings.write_rune(output_json, r)
+		}
 		strings.write_string(output_json, "\"")
 	case .STR:
 		strings.write_string(output_json, "\"id\":\"comp\",\"data\":{\"name\":\"")
-		strings.write_string(output_json, get_symbol(self.symbols, argument.data)[1:])
+		for r in get_symbol(self.symbols, argument.data)[1:] {
+			if r == '\"' {
+				strings.write_rune(output_json, '\\')
+			}
+			strings.write_rune(output_json, r)
+		}
 		strings.write_string(output_json, "\"")
 	}
 

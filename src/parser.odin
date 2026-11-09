@@ -261,6 +261,8 @@ parse_expr :: proc(self: ^ParserContext, token_index: ^int) -> ParserStatus {
 
 			return .SUCCESS
 		}
+
+		token_index^ -= 1
 	}
 
 	if self.tokens[token_index^+1].type == .SEMICOLON || self.tokens[token_index^+1].type == .RPAREN {
