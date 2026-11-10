@@ -266,23 +266,23 @@ parse_expr :: proc(self: ^ParserContext, token_index: ^int) -> ParserStatus {
 	}
 
 	if self.tokens[token_index^+1].type == .SEMICOLON || self.tokens[token_index^+1].type == .RPAREN {
-		constant_node := create_node(current_token.type == .IDENTIFIER ? .IDENTIFIER : .CONSTANT,
+		expr_node := create_node(current_token.type == .IDENTIFIER ? .IDENTIFIER : .CONSTANT,
 									 current_token.symbol_index)
-		append(&self.tree_nodes, constant_node)
+		append(&self.tree_nodes, expr_node)
 
 		return .SUCCESS
 	}
 
-	constant_node := create_node(current_token.type == .IDENTIFIER ? .IDENTIFIER : .CONSTANT,
+	expr_node := create_node(current_token.type == .IDENTIFIER ? .IDENTIFIER : .CONSTANT,
 								 current_token.symbol_index)
-	append(&self.tree_nodes, constant_node)
 
 	token_index^ += 1
 	current_token = &self.tokens[token_index^]
 
 	operator_node := create_node(.OPERATOR)
 
-	append(&operator_node.children, len(self.tree_nodes) - 1)
+	append(&operator_node.children, len(self.tree_nodes))
+	append(&self.tree_nodes, expr_node)
 
 	operator_builder := strings.builder_make(0, 4)
 	for current_token.type != .SEMICOLON && current_token.type != .RPAREN {
@@ -291,27 +291,16 @@ parse_expr :: proc(self: ^ParserContext, token_index: ^int) -> ParserStatus {
 		token_index^ += 1
 		current_token = &self.tokens[token_index^]
 
-		if current_token.type == .LPAREN {
-			token_index^ += 1
-			parse_expr(self, token_index) or_return
-			append(&operator_node.children, len(self.tree_nodes) - 1)
+		token_index^ += current_token.type != .LPAREN ? 0 : 1
 
-			token_index^ += 2
-			current_token = &self.tokens[token_index^]
-			continue
-		}
-
-		constant_node = create_node(current_token.type == .IDENTIFIER ? .IDENTIFIER : .CONSTANT,
-									current_token.symbol_index)
-		append(&self.tree_nodes, constant_node)
+		parse_expr(self, token_index) or_return
 		append(&operator_node.children, len(self.tree_nodes) - 1)
 
-		token_index^ += 1
+		token_index^ += current_token.type != .LPAREN ? 1 : 2
 		current_token = &self.tokens[token_index^]
 	}
 
 	token_index^ -= 1
-
 	operator_string := strings.to_string(operator_builder)
 	operator_node.data = append_symbol(self.symbols, &operator_string)
 

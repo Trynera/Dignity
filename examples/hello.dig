@@ -5,5 +5,5 @@ CONST_PI :: 3.141;
 hello :: () {
 	testing := CONST_PI;
 	hmm := 2.0 + (3.0 + CONST_PI) * testing;
-	hmm = '"Maybe"'; // TODO: Make this ERROR
+	hmm = "Test"; // TODO: Make this ERROR because it doesn't fit the Type
 }
