@@ -44,6 +44,7 @@ NodeType :: enum {
 	DEFINE,
 	SET,
 	OPERATOR,
+	NEGATIVE,
 	CONSTANT,
 	ARGUMENT,
 }
@@ -265,42 +266,54 @@ parse_expr :: proc(self: ^ParserContext, token_index: ^int) -> ParserStatus {
 		token_index^ -= 1
 	}
 
-	if self.tokens[token_index^+1].type == .SEMICOLON || self.tokens[token_index^+1].type == .RPAREN {
-		expr_node := create_node(current_token.type == .IDENTIFIER ? .IDENTIFIER : .CONSTANT,
-									 current_token.symbol_index)
-		append(&self.tree_nodes, expr_node)
+	is_negative := current_token.type == .MINUS
 
-		return .SUCCESS
-	}
+	token_index^ += current_token.type == .PLUS || is_negative ? 1 : 0
+	current_token = &self.tokens[token_index^]
 
 	expr_node := create_node(current_token.type == .IDENTIFIER ? .IDENTIFIER : .CONSTANT,
 								 current_token.symbol_index)
+	append(&self.tree_nodes, expr_node)
+
+	if is_negative {
+		append(&self.tree_nodes, create_node(.NEGATIVE, NO_SYMBOL_INDEX, { len(self.tree_nodes) - 1 }))
+	}
 
 	token_index^ += 1
 	current_token = &self.tokens[token_index^]
 
-	operator_node := create_node(.OPERATOR)
+	if current_token.type == .SEMICOLON || current_token.type == .RPAREN {
+		token_index^ -= 1
 
-	append(&operator_node.children, len(self.tree_nodes))
-	append(&self.tree_nodes, expr_node)
+		return .SUCCESS
+	}
 
-	operator_builder := strings.builder_make(0, 4)
+	operator_node := create_node(.OPERATOR, NO_SYMBOL_INDEX, { len(self.tree_nodes) - 1 })
+
+	operator_builder := strings.builder_make(0, 1)
 	for current_token.type != .SEMICOLON && current_token.type != .RPAREN {
 		strings.write_rune(&operator_builder, get_operator_rune(current_token.type))
 
 		token_index^ += 1
 		current_token = &self.tokens[token_index^]
 
-		token_index^ += current_token.type != .LPAREN ? 0 : 1
+		if current_token.type == .LPAREN {
+			token_index^ += 1
 
-		parse_expr(self, token_index) or_return
-		append(&operator_node.children, len(self.tree_nodes) - 1)
+			parse_expr(self, token_index) or_return
+			append(&operator_node.children, len(self.tree_nodes) - 1)
+		} else {
+			expr_node = create_node(current_token.type == .IDENTIFIER ? .IDENTIFIER : .CONSTANT,
+										current_token.symbol_index)
+			append(&self.tree_nodes, expr_node)
+			append(&operator_node.children, len(self.tree_nodes) - 1)
+		}
 
-		token_index^ += current_token.type != .LPAREN ? 1 : 2
+		token_index^ += 1
 		current_token = &self.tokens[token_index^]
 	}
 
-	token_index^ -= 1
+	token_index^ -= int(current_token.type == .SEMICOLON)
 	operator_string := strings.to_string(operator_builder)
 	operator_node.data = append_symbol(self.symbols, &operator_string)
 

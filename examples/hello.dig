@@ -3,7 +3,7 @@
 CONST_PI :: 3.141;
 
 hello :: () {
-	testing := CONST_PI;
-	hmm := 2.0 + (3.0 + CONST_PI) * testing;
+	testing := -3;
+	hmm := 2.0 + 3.0 + CONST_PI * testing;
 	hmm = "Test"; // TODO: Make this ERROR because it doesn't fit the Type
 }

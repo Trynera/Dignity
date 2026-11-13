@@ -147,12 +147,16 @@ create_ir_from_node :: proc(
 		item_builder := strings.builder_make(0, 4)
 		create_math_string(self, current_node, &item_builder)
 		symbol_string := strings.to_string(item_builder);
-		symbol_index := append_symbol(self.symbols, &symbol_string,)
+		symbol_index := append_symbol(self.symbols, &symbol_string)
 
 		append(
 			&self.instructions[len(self.instructions) - 1].arguments,
 			InstructionArgument{type = .NUM, data = symbol_index},
 		)
+
+		return .SUCCESS
+	case .NEGATIVE:
+		create_ir_from_node(self, &self.tree_nodes[current_node.children[0]]) or_return
 
 		return .SUCCESS
 	case .CONSTANT:
