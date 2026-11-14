@@ -158,6 +158,14 @@ create_ir_from_node :: proc(
 	case .NEGATIVE:
 		create_ir_from_node(self, &self.tree_nodes[current_node.children[0]]) or_return
 
+		current_instruction := &self.instructions[len(self.instructions) - 1]
+		current_argument := &current_instruction.arguments[len(current_instruction.arguments) - 1]
+
+		combined_string := [?]string {"-", get_symbol(self.symbols, current_argument.data)}
+		new_symbol := strings.concatenate(combined_string[:])
+
+		current_argument.data = append_symbol(self.symbols, &new_symbol)
+
 		return .SUCCESS
 	case .CONSTANT:
 		variable_value, ok := self.constants[get_symbol(self.symbols, current_node.data)]
@@ -177,20 +185,20 @@ create_ir_from_node :: proc(
 		return .SUCCESS
 	case .IDENTIFIER:
 		identifier := get_symbol(self.symbols, current_node.data)
-		variable_value, ok := self.constants[identifier]
+		constant_value, ok := self.constants[identifier]
 
 		if !ok {
+			variable_type := self.variables[identifier]
+
 			append(
 				&self.instructions[len(self.instructions) - 1].arguments,
-				InstructionArgument{type = .LINE_VAR, data = current_node.data},
+				InstructionArgument{type = var_to_iatype(variable_type), data = current_node.data},
 			)
 
 			return .SUCCESS
 		}
 
-		value_node := ASTNode{}
-		value_node.type = .CONSTANT
-		value_node.data = append_symbol(self.symbols, &variable_value)
+		value_node := create_node(.CONSTANT, append_symbol(self.symbols, &constant_value))
 
 		create_ir_from_node(self, &value_node) or_return
 
@@ -202,6 +210,19 @@ create_ir_from_node :: proc(
 	}
 
 	return .SUCCESS
+}
+
+var_to_iatype :: proc(type: string) -> IAType {
+	switch type {
+	case "num":
+		return .NUM
+	case "txt":
+		return .TXT
+	case "str":
+		return .STR
+	case:
+		return .LINE_VAR
+	}
 }
 
 create_math_string :: proc(self: ^IRGeneratorContext,
