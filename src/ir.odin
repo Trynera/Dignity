@@ -6,6 +6,7 @@ import "core:strings"
 IAType :: enum {
 	LINE_VAR,
 	GAME_VAR,
+	SAVE_VAR,
 	NUM,
 	TXT,
 	STR,
@@ -44,10 +45,10 @@ create_instruction :: proc(
 InstructionTable :: distinct [dynamic]Instruction
 
 IRGeneratorContext :: struct {
-	tree_nodes:   ^[dynamic]ASTNode,
-	symbols:      ^SymbolTable,
 	variables:    map[string]string,
 	constants:	  map[string]string,
+	tree_nodes:   ^[dynamic]ASTNode,
+	symbols:      ^SymbolTable,
 	instructions: InstructionTable,
 	builder:      strings.Builder,
 	item_slot:    u32,
@@ -56,8 +57,6 @@ IRGeneratorContext :: struct {
 
 create_ir_generator_context :: proc(parser_context: ^ParserContext) -> IRGeneratorContext {
 	ir_generator_context := IRGeneratorContext{}
-
-	ir_generator_context.tree_nodes = &parser_context.tree_nodes
 	ir_generator_context.symbols = parser_context.symbols
 	ir_generator_context.variables = make(map[string]string)
 	ir_generator_context.constants = make(map[string]string)
@@ -364,6 +363,10 @@ create_json_from_argument :: proc(
 		strings.write_string(output_json, "\"id\":\"var\",\"data\":{\"name\":\"")
 		strings.write_string(output_json, get_symbol(self.symbols, argument.data))
 		strings.write_string(output_json, "\",\"scope\":\"unsaved\"")
+	case .SAVE_VAR:
+		strings.write_string(output_json, "\"id\":\"var\",\"data\":{\"name\":\"")
+		strings.write_string(output_json, get_symbol(self.symbols, argument.data))
+		strings.write_string(output_json, "\",\"scope\":\"saved\"")
 	case .NUM:
 		strings.write_string(output_json, "\"id\":\"num\",\"data\":{\"name\":\"")
 		strings.write_string(output_json, get_symbol(self.symbols, argument.data))
@@ -399,6 +402,5 @@ get_operator_presedence :: proc(c: u8) -> int {
 	case '/': fallthrough
 	case '%': return 2
 	}
-
 	return 0
 }
