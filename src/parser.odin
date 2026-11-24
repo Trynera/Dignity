@@ -16,7 +16,6 @@ ParserContext :: struct {
 
 create_parser_context :: proc(tokenizer_context: ^TokenizerContext) -> ParserContext {
 	parser_context := ParserContext{}
-
 	parser_context.symbols = &tokenizer_context.symbols
 	parser_context.tokens = &tokenizer_context.tokens
 	parser_context.tree_nodes = make([dynamic]ASTNode, 1)
@@ -218,6 +217,8 @@ parse_stmt :: proc(self: ^ParserContext, token_index: ^int) -> ParserStatus {
 
 		token_index^ += 1
 		current_token = &self.tokens[token_index^]
+	} else {
+		append_symbol(self.symbols, type_identifier)
 	}
 
 	define_node := create_node(current_token.type == .COLON ? .DEFINE_CONST : .DEFINE_SET,
@@ -291,6 +292,8 @@ parse_expr :: proc(self: ^ParserContext, token_index: ^int) -> ParserStatus {
 	operator_node := create_node(.OPERATOR, NO_SYMBOL_INDEX, { len(self.tree_nodes) - 1 })
 
 	operator_builder := strings.builder_make(0, 1)
+	defer strings.builder_destroy(&operator_builder)
+
 	for current_token.type != .SEMICOLON && current_token.type != .RPAREN {
 		strings.write_rune(&operator_builder, get_operator_rune(current_token.type))
 
@@ -315,7 +318,7 @@ parse_expr :: proc(self: ^ParserContext, token_index: ^int) -> ParserStatus {
 
 	token_index^ -= int(current_token.type == .SEMICOLON)
 	operator_string := strings.to_string(operator_builder)
-	operator_node.data = append_symbol(self.symbols, &operator_string)
+	operator_node.data = append_symbol(self.symbols, operator_string)
 
 	append(&self.tree_nodes, operator_node)
 

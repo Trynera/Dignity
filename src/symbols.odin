@@ -1,6 +1,7 @@
 package main
 
 import "core:fmt"
+import "core:strings"
 import "core:unicode"
 import "core:math/bits"
 
@@ -8,7 +9,7 @@ SymbolTable :: distinct [dynamic]string
 
 SymbolIndex :: uint
 
-NO_SYMBOL_INDEX :: bits.INT_MAX
+NO_SYMBOL_INDEX :: bits.UINT_MAX
 
 get_symbol :: proc(self: ^SymbolTable, index: SymbolIndex) -> string {
 	if index == NO_SYMBOL_INDEX {
@@ -18,16 +19,19 @@ get_symbol :: proc(self: ^SymbolTable, index: SymbolIndex) -> string {
 	return self[index]
 }
 
-append_symbol :: proc(self: ^SymbolTable, symbol: ^string) -> SymbolIndex {
+append_symbol :: proc(self: ^SymbolTable, symbol: string) -> SymbolIndex {
 	for cur_symbol, index in self {
-		if cur_symbol == symbol^ {
-			if raw_data(cur_symbol) != raw_data(symbol^) do delete(symbol^)
-
-			return SymbolIndex(index)
-		}
+		if cur_symbol == symbol do return SymbolIndex(index)
 	}
 
-	append(self, symbol^)
+	cloned_string, err := strings.clone(symbol)
+	if err != nil {
+		fmt.eprintfln("Some bs: {}", err)
+
+		return len(self) - 1
+	}
+
+	append(self, cloned_string)
 
 	return len(self) - 1
 }

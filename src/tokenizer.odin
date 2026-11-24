@@ -35,6 +35,7 @@ TokenType :: enum {
 	UNKNOWN,
 	IDENTIFIER,
 	CONSTANT,
+	CAST,
 	COLON,
 	SEMICOLON,
 	EQUAL,
@@ -180,7 +181,7 @@ tokenize_character :: proc(self: ^TokenizerContext, index: ^int) -> TokenizerSta
 
 		symbol_string := strings.to_string(symbol_builder)
 
-		current_token.symbol_index = append_symbol(&self.symbols, &symbol_string)
+		current_token.symbol_index = append_symbol(&self.symbols, symbol_string)
 	case character == '\'':
 		current_token.type = .CONSTANT
 
@@ -200,11 +201,13 @@ tokenize_character :: proc(self: ^TokenizerContext, index: ^int) -> TokenizerSta
 		}
 
 		content_string := strings.to_string(content)
-		current_token.symbol_index = append_symbol(&self.symbols, &content_string)
+		current_token.symbol_index = append_symbol(&self.symbols, content_string)
 	case character == '"':
 		current_token.type = .CONSTANT
 
 		content := strings.builder_make(0, 16)
+		defer strings.builder_destroy(&content)
+
 		strings.write_rune(&content, '"')
 
 		index^ += 1
@@ -220,11 +223,12 @@ tokenize_character :: proc(self: ^TokenizerContext, index: ^int) -> TokenizerSta
 		}
 
 		content_string := strings.to_string(content)
-		current_token.symbol_index = append_symbol(&self.symbols, &content_string)
+		current_token.symbol_index = append_symbol(&self.symbols, content_string)
 	case unicode.is_digit(character):
 		current_token.type = .CONSTANT
 
 		digits := strings.builder_make(0, 16)
+		defer strings.builder_destroy(&digits)
 
 		for ; unicode.is_digit(self.content[index^]); index^ += 1 {
 			strings.write_rune(&digits, self.content[index^])
@@ -240,13 +244,12 @@ tokenize_character :: proc(self: ^TokenizerContext, index: ^int) -> TokenizerSta
 
 		index^ -= 1
 
-		digits_string := strings.to_string(digits)
-
-		current_token.symbol_index = append_symbol(&self.symbols, &digits_string)
+		current_token.symbol_index = append_symbol(&self.symbols, strings.to_string(digits))
 	case:
 		current_token.type = .IDENTIFIER
 
 		symbol_builder := strings.builder_make(0, 16)
+		defer strings.builder_destroy(&symbol_builder)
 
 		if character == 's' && self.content[index^ + 1] == '"' {
 			current_token.type = .CONSTANT
@@ -259,9 +262,7 @@ tokenize_character :: proc(self: ^TokenizerContext, index: ^int) -> TokenizerSta
 			}
 
 			symbol_string := strings.to_string(symbol_builder)
-			current_token.symbol_index = append_symbol(&self.symbols, &symbol_string)
-
-			strings.builder_destroy(&symbol_builder)
+			current_token.symbol_index = append_symbol(&self.symbols, symbol_string)
 
 			break
 		}
@@ -271,15 +272,32 @@ tokenize_character :: proc(self: ^TokenizerContext, index: ^int) -> TokenizerSta
 			index^ += 1 {
 			strings.write_rune(&symbol_builder, self.content[index^])
 		}
+		index^ -= 1
 
 		symbol_string := strings.to_string(symbol_builder)
 
-		current_token.symbol_index = append_symbol(&self.symbols, &symbol_string)
+		keyword_token := is_keyword(symbol_string)
+		if keyword_token != .UNKNOWN {
+			current_token.type = keyword_token
+			current_token.symbol_index = NO_SYMBOL_INDEX
 
-		index^ -= 1
+			break
+		}
+
+		current_token.symbol_index = append_symbol(&self.symbols, symbol_string)
+
 	}
 
 	append(&self.tokens, current_token)
 
 	return .SUCCESS
+}
+
+is_keyword :: proc(s: string) -> TokenType {
+	switch s {
+	case "cast":
+		return .CAST
+	case:
+		return .UNKNOWN
+	}
 }

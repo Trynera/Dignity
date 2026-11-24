@@ -58,6 +58,7 @@ IRGeneratorContext :: struct {
 create_ir_generator_context :: proc(parser_context: ^ParserContext) -> IRGeneratorContext {
 	ir_generator_context := IRGeneratorContext{}
 	ir_generator_context.symbols = parser_context.symbols
+	ir_generator_context.tree_nodes = &parser_context.tree_nodes
 	ir_generator_context.variables = make(map[string]string)
 	ir_generator_context.constants = make(map[string]string)
 	ir_generator_context.instructions = make(InstructionTable)
@@ -144,9 +145,11 @@ create_ir_from_node :: proc(
 		)
 	case .OPERATOR:
 		item_builder := strings.builder_make(0, 4)
+		defer strings.builder_destroy(&item_builder)
+
 		create_math_string(self, current_node, &item_builder)
 		symbol_string := strings.to_string(item_builder);
-		symbol_index := append_symbol(self.symbols, &symbol_string)
+		symbol_index := append_symbol(self.symbols, symbol_string)
 
 		append(
 			&self.instructions[len(self.instructions) - 1].arguments,
@@ -163,14 +166,16 @@ create_ir_from_node :: proc(
 		combined_string := [?]string {"-", get_symbol(self.symbols, current_argument.data)}
 		new_symbol := strings.concatenate(combined_string[:])
 
-		current_argument.data = append_symbol(self.symbols, &new_symbol)
+		current_argument.data = append_symbol(self.symbols, new_symbol)
+
+		delete(new_symbol)
 
 		return .SUCCESS
 	case .CONSTANT:
 		variable_value, ok := self.constants[get_symbol(self.symbols, current_node.data)]
 
 		if ok {
-			current_node.data = append_symbol(self.symbols, &variable_value)
+			current_node.data = append_symbol(self.symbols, variable_value)
 		}
 
 		first_char := get_symbol(self.symbols, current_node.data)[0]
@@ -197,7 +202,7 @@ create_ir_from_node :: proc(
 			return .SUCCESS
 		}
 
-		value_node := create_node(.CONSTANT, append_symbol(self.symbols, &constant_value))
+		value_node := create_node(.CONSTANT, append_symbol(self.symbols, constant_value))
 
 		create_ir_from_node(self, &value_node) or_return
 
